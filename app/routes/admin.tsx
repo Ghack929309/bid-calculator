@@ -1,51 +1,21 @@
-import React, { useState } from "react";
-import {
-  Settings,
-  DollarSign,
-  Truck,
-  Package,
-  Map,
-  Shield,
-  BarChart,
-  PlusCircle,
-} from "lucide-react";
-import { AddLogic } from "~/components/add-Logic";
-import { Field } from "~/lib/types";
+import { useState } from "react";
+import { Settings, DollarSign, Truck, Package, Shield } from "lucide-react";
+import { AddLogic } from "~/components/add-logic";
+import { Field, InputFieldType } from "~/lib/types";
 import { AddField } from "~/components/add-field";
+import { DynamicForm } from "~/components/dynamic-form";
+import { isBrowser } from "~/lib/utils";
 
 const CalculatorAdmin = () => {
   const [activeTab, setActiveTab] = useState("general");
   const [saved, setSaved] = useState(false);
-  const [fields, setFields] = useState<Field[]>([]);
+  const [fields, setFields] = useState<InputFieldType[]>(
+    isBrowser ? JSON.parse(localStorage?.getItem("fields") || "[]") : []
+  );
+  const [fieldsLogic, setFieldsLogic] = useState<Field[]>(
+    isBrowser ? JSON.parse(localStorage?.getItem("fieldsLogic") || "[]") : []
+  );
 
-  // State for general settings
-  const [generalSettings, setGeneralSettings] = useState({
-    serviceFeeBase: 1500,
-    serviceFeePercentage: 10,
-    serviceFeePriceThreshold: 20000,
-    inspectionFee: 500,
-    japanLandingFee: 340,
-    processingFeePercentage: 1,
-    bankTransferFeePercentage: 5,
-    brokerageFee: 350,
-    levyFee: 250,
-  });
-
-  // State for duty rates
-  const [dutyRates, setDutyRates] = useState({
-    petrol: 65,
-    hybrid: 10,
-    electric: 10,
-  });
-
-  // State for shipping rates
-  const [shippingRates, setShippingRates] = useState({
-    Nassau: 1800,
-    Freeport: 1600,
-    Abaco: 1700,
-  });
-
-  // State for auction fees
   const [auctionFees, setAuctionFees] = useState({
     copart: {
       buyerFee: 945,
@@ -69,167 +39,19 @@ const CalculatorAdmin = () => {
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const handleAddField = (field: Field) => {
-    setFields([...fields, field]);
+  const handleAddLogic = (field: Field) => {
+    setFieldsLogic([...fieldsLogic, field]);
+    localStorage?.setItem(
+      "fieldsLogic",
+      JSON.stringify([...fieldsLogic, field])
+    );
   };
 
-  const renderGeneralSettings = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">General Fee Settings</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium">
-              Base Service Fee ($)
-            </label>
-            <input
-              type="number"
-              value={generalSettings.serviceFeeBase}
-              onChange={(e) =>
-                setGeneralSettings({
-                  ...generalSettings,
-                  serviceFeeBase: parseFloat(e.target.value),
-                })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">
-              Service Fee Percentage (%)
-            </label>
-            <input
-              type="number"
-              value={generalSettings.serviceFeePercentage}
-              onChange={(e) =>
-                setGeneralSettings({
-                  ...generalSettings,
-                  serviceFeePercentage: parseFloat(e.target.value),
-                })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">
-              Service Fee Threshold ($)
-            </label>
-            <input
-              type="number"
-              value={generalSettings.serviceFeePriceThreshold}
-              onChange={(e) =>
-                setGeneralSettings({
-                  ...generalSettings,
-                  serviceFeePriceThreshold: parseFloat(e.target.value),
-                })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium">
-              Inspection Fee ($)
-            </label>
-            <input
-              type="number"
-              value={generalSettings.inspectionFee}
-              onChange={(e) =>
-                setGeneralSettings({
-                  ...generalSettings,
-                  inspectionFee: parseFloat(e.target.value),
-                })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">
-              Processing Fee (%)
-            </label>
-            <input
-              type="number"
-              value={generalSettings.processingFeePercentage}
-              onChange={(e) =>
-                setGeneralSettings({
-                  ...generalSettings,
-                  processingFeePercentage: parseFloat(e.target.value),
-                })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">
-              Bank Transfer Fee (%)
-            </label>
-            <input
-              type="number"
-              value={generalSettings.bankTransferFeePercentage}
-              onChange={(e) =>
-                setGeneralSettings({
-                  ...generalSettings,
-                  bankTransferFeePercentage: parseFloat(e.target.value),
-                })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderDutyRates = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Customs Duty Rates</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {Object.entries(dutyRates).map(([key, value]) => (
-          <div key={key}>
-            <label className="block text-sm font-medium capitalize">
-              {key} Vehicles (%)
-            </label>
-            <input
-              type="number"
-              value={value}
-              onChange={(e) =>
-                setDutyRates({
-                  ...dutyRates,
-                  [key]: parseFloat(e.target.value),
-                })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderShippingRates = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Shipping Rates by Destination</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {Object.entries(shippingRates).map(([key, value]) => (
-          <div key={key}>
-            <label className="block text-sm font-medium">{key} ($)</label>
-            <input
-              type="number"
-              value={value}
-              onChange={(e) =>
-                setShippingRates({
-                  ...shippingRates,
-                  [key]: parseFloat(e.target.value),
-                })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  const handleAddField = (field: InputFieldType) => {
+    setFields([...fields, field]);
+    console.log("field", field);
+    localStorage?.setItem("fields", JSON.stringify([...fields, field]));
+  };
 
   const renderAuctionFees = () => (
     <div className="space-y-8">
@@ -339,15 +161,17 @@ const CalculatorAdmin = () => {
 
       {/* Content Area */}
       <div className="bg-white rounded-lg shadow p-6">
-        {activeTab === "general" && renderGeneralSettings()}
-        {activeTab === "duty" && renderDutyRates()}
-        {activeTab === "shipping" && renderShippingRates()}
+        {activeTab === "general" && (
+          <DynamicForm fields={fields} onSubmit={() => {}} />
+        )}
+        {/* {activeTab === "duty" && renderDutyRates()}
+        {activeTab === "shipping" && renderShippingRates()} */}
         {activeTab === "auction" && renderAuctionFees()}
 
         {/* Save Button */}
         <div className="mt-8 flex justify-end">
-          <AddLogic handleAddField={handleAddField} />
-          <AddField handleAddField={() => {}} />
+          <AddLogic handleAddLogic={handleAddLogic} />
+          <AddField handleAddField={handleAddField} />
           <button
             onClick={handleSave}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"

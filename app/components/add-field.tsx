@@ -10,40 +10,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
-
-type FieldType = "number" | "text" | "select" | "checkbox";
-
-interface BaseField {
-  name: string;
-  type: FieldType;
-  required: boolean;
-  enabled: boolean;
-}
-
-interface SimpleField extends BaseField {
-  type: "number" | "text";
-  value: string;
-}
-
-interface OptionsField extends BaseField {
-  type: "select" | "checkbox";
-  options: string[];
-}
+import {
+  FieldType,
+  InputFieldType,
+  OptionsField,
+  SimpleField,
+} from "~/lib/types";
+import { getInitialFieldState } from "~/lib/utils";
 
 type Field = SimpleField | OptionsField;
-
-const getInitialFieldState = ({ type }: { type: FieldType }): Field => {
-  const baseField = {
-    name: "",
-    type,
-    required: false,
-    enabled: true,
-  };
-
-  return type === "number" || type === "text"
-    ? ({ ...baseField, value: "" } as SimpleField)
-    : ({ ...baseField, options: [] } as OptionsField);
-};
 
 function FieldForm({
   field,
@@ -60,7 +35,9 @@ function FieldForm({
       />
       <FieldTypeSelect
         value={field.type}
-        onChange={(type) => onFieldChange(getInitialFieldState({ type }))}
+        onChange={(type) =>
+          onFieldChange(getInitialFieldState({ ...field, type }))
+        }
       />
       {(field.type === "select" || field.type === "checkbox") && (
         <OptionsManager
@@ -269,12 +246,11 @@ function RequiredCheckbox({
 export function AddField({
   handleAddField,
 }: {
-  handleAddField: (field: Field) => void;
+  handleAddField: (field: InputFieldType) => void;
 }) {
-  const [field, setField] = useState<Field>(
+  const [field, setField] = useState<InputFieldType>(
     getInitialFieldState({ type: "number" })
   );
-
   const handleSave = () => {
     if (field.name.trim()) {
       handleAddField(field);

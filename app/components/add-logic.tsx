@@ -13,9 +13,9 @@ import {
 import { Field } from "~/lib/types";
 
 export function AddLogic({
-  handleAddField,
+  handleAddLogic,
 }: {
-  handleAddField: (field: Field) => void;
+  handleAddLogic: (field: Field) => void;
 }) {
   const [fields, setFields] = useState([
     {
