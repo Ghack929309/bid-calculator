@@ -7,11 +7,16 @@ import {
   Map,
   Shield,
   BarChart,
+  PlusCircle,
 } from "lucide-react";
+import { AddLogic } from "~/components/add-Logic";
+import { Field } from "~/lib/types";
+import { AddField } from "~/components/add-field";
 
 const CalculatorAdmin = () => {
   const [activeTab, setActiveTab] = useState("general");
   const [saved, setSaved] = useState(false);
+  const [fields, setFields] = useState<Field[]>([]);
 
   // State for general settings
   const [generalSettings, setGeneralSettings] = useState({
@@ -62,6 +67,10 @@ const CalculatorAdmin = () => {
     // This would send the data to your backend
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleAddField = (field: Field) => {
+    setFields([...fields, field]);
   };
 
   const renderGeneralSettings = () => (
@@ -337,6 +346,8 @@ const CalculatorAdmin = () => {
 
         {/* Save Button */}
         <div className="mt-8 flex justify-end">
+          <AddLogic handleAddField={handleAddField} />
+          <AddField handleAddField={() => {}} />
           <button
             onClick={handleSave}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
