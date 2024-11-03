@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -10,23 +11,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
-import {
-  FieldType,
-  InputFieldType,
-  OptionsField,
-  SimpleField,
-} from "~/lib/types";
+import { FieldType, InputFieldType } from "~/lib/types";
 import { getInitialFieldState } from "~/lib/utils";
-
-type Field = SimpleField | OptionsField;
+import { v4 as uuidv4 } from "uuid";
 
 function FieldForm({
   field,
   onFieldChange,
 }: {
-  field: Field;
-  onFieldChange: (field: Field) => void;
+  field: InputFieldType;
+  onFieldChange: (field: InputFieldType) => void;
 }) {
+  console.log("field from field form", field);
   return (
     <div className="space-y-4">
       <FieldNameInput
@@ -245,23 +241,38 @@ function RequiredCheckbox({
 
 export function AddField({
   handleAddField,
+  handleUpdateField,
+  trigger,
+  initialField,
+  isEditing = false,
 }: {
-  handleAddField: (field: InputFieldType) => void;
+  handleAddField?: (field: InputFieldType) => void;
+  handleUpdateField?: (field: InputFieldType) => void;
+  trigger?: React.ReactNode;
+  initialField: InputFieldType;
+  isEditing?: boolean;
 }) {
-  const [field, setField] = useState<InputFieldType>(
-    getInitialFieldState({ type: "number" })
-  );
+  const [field, setField] = useState<InputFieldType>(initialField);
+
   const handleSave = () => {
     if (field.name.trim()) {
-      handleAddField(field);
+      handleAddField?.({ ...field, id: uuidv4() });
       setField(getInitialFieldState({ type: field.type }));
     }
   };
+  const handleUpdate = () => {
+    handleUpdateField?.(field);
+  };
 
+  const onFieldUpdate = (updatedField: InputFieldType) => {
+    setField({ ...initialField, ...updatedField });
+  };
+
+  const handleClick = isEditing ? handleUpdate : handleSave;
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="default">Add Field</Button>
+        {trigger || <Button variant="default">Add Field</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -270,9 +281,13 @@ export function AddField({
             Add a new field to the calculator.
           </DialogDescription>
         </DialogHeader>
-        <FieldForm field={field} onFieldChange={setField} />
+        <FieldForm field={field} onFieldChange={onFieldUpdate} />
         <DialogFooter>
-          <Button onClick={handleSave}>Save changes</Button>
+          <DialogClose asChild>
+            <Button onClick={handleClick}>
+              {isEditing ? "Update" : "Save changes"}
+            </Button>
+          </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -9,13 +9,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 export const getInitialFieldState = ({
   type,
-  value,
   options,
   name,
   required,
 }: {
   type: FieldType;
-  value?: string;
   options?: string[];
   name?: string;
   required?: boolean;
@@ -28,6 +26,6 @@ export const getInitialFieldState = ({
   };
 
   return type === "number" || type === "text"
-    ? ({ ...baseField, value: value || "" } as SimpleField)
+    ? ({ ...baseField } as SimpleField)
     : ({ ...baseField, options: options || [] } as OptionsField);
 };

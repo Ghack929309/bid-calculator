@@ -10,12 +10,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
-import { Field } from "~/lib/types";
+import { LogicFieldType } from "~/lib/types";
 
 export function AddLogic({
   handleAddLogic,
 }: {
-  handleAddLogic: (field: Field) => void;
+  handleAddLogic: (field: LogicFieldType) => void;
 }) {
   const [fields, setFields] = useState([
     {

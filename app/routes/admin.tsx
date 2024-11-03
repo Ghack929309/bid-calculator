@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Settings, DollarSign, Truck, Package, Shield } from "lucide-react";
 import { AddLogic } from "~/components/add-logic";
-import { Field, InputFieldType } from "~/lib/types";
+import { LogicFieldType, InputFieldType } from "~/lib/types";
 import { AddField } from "~/components/add-field";
 import { DynamicForm } from "~/components/dynamic-form";
-import { isBrowser } from "~/lib/utils";
+import { getInitialFieldState, isBrowser } from "~/lib/utils";
+import { Button } from "~/components/ui/button";
 
 const CalculatorAdmin = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -12,7 +13,7 @@ const CalculatorAdmin = () => {
   const [fields, setFields] = useState<InputFieldType[]>(
     isBrowser ? JSON.parse(localStorage?.getItem("fields") || "[]") : []
   );
-  const [fieldsLogic, setFieldsLogic] = useState<Field[]>(
+  const [fieldsLogic, setFieldsLogic] = useState<LogicFieldType[]>(
     isBrowser ? JSON.parse(localStorage?.getItem("fieldsLogic") || "[]") : []
   );
 
@@ -35,11 +36,9 @@ const CalculatorAdmin = () => {
 
   const handleSave = () => {
     // This would send the data to your backend
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
   };
 
-  const handleAddLogic = (field: Field) => {
+  const handleAddLogic = (field: LogicFieldType) => {
     setFieldsLogic([...fieldsLogic, field]);
     localStorage?.setItem(
       "fieldsLogic",
@@ -49,8 +48,23 @@ const CalculatorAdmin = () => {
 
   const handleAddField = (field: InputFieldType) => {
     setFields([...fields, field]);
-    console.log("field", field);
     localStorage?.setItem("fields", JSON.stringify([...fields, field]));
+  };
+
+  const handleUpdateField = (field: InputFieldType) => {
+    console.log("field from handleUpdateField", field);
+    const isFieldExists = fields.find((f) => f.id === field.id);
+    if (isFieldExists) {
+      const updatedFields = fields.map((f) => (f.id === field.id ? field : f));
+      setFields(updatedFields);
+      localStorage?.setItem("fields", JSON.stringify(updatedFields));
+    }
+  };
+
+  const handleDeleteField = (field: InputFieldType) => {
+    const updatedFields = fields.filter((f) => f.name !== field.name);
+    setFields(updatedFields);
+    localStorage?.setItem("fields", JSON.stringify(updatedFields));
   };
 
   const renderAuctionFees = () => (
@@ -162,7 +176,13 @@ const CalculatorAdmin = () => {
       {/* Content Area */}
       <div className="bg-white rounded-lg shadow p-6">
         {activeTab === "general" && (
-          <DynamicForm fields={fields} onSubmit={() => {}} />
+          <DynamicForm
+            fields={fields}
+            onSubmit={() => {}}
+            isEditing={true}
+            handleDeleteField={handleDeleteField}
+            handleUpdateField={handleUpdateField}
+          />
         )}
         {/* {activeTab === "duty" && renderDutyRates()}
         {activeTab === "shipping" && renderShippingRates()} */}
@@ -171,7 +191,12 @@ const CalculatorAdmin = () => {
         {/* Save Button */}
         <div className="mt-8 flex justify-end">
           <AddLogic handleAddLogic={handleAddLogic} />
-          <AddField handleAddField={handleAddField} />
+
+          <AddField
+            initialField={getInitialFieldState({ type: "number" })}
+            handleAddField={handleAddField}
+          />
+
           <button
             onClick={handleSave}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"

@@ -1,7 +1,8 @@
 export type FieldType = "number" | "text" | "select" | "checkbox";
-export type FormField = SimpleField | OptionsField;
+export type InputFieldType = SimpleField | OptionsField;
 
 interface BaseField {
+  id: string;
   name: string;
   type: FieldType;
   required: boolean;
@@ -10,7 +11,6 @@ interface BaseField {
 
 export interface SimpleField extends BaseField {
   type: "number" | "text";
-  value: string;
 }
 
 export interface OptionsField extends BaseField {
@@ -18,7 +18,7 @@ export interface OptionsField extends BaseField {
   options: string[];
 }
 
-export type Field = {
+export type LogicFieldType = {
   name: string;
   value: string;
   isRequired: boolean;
