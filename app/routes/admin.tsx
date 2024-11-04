@@ -155,7 +155,7 @@ const CalculatorAdmin = () => {
                   handleAddField={handleAddLogicalField}
                   handleUpdateField={handleUpdateLogicalField}
                 />
-                <AddLogic fields={fields} handleAddLogic={handleAddLogic} />
+                <AddLogic logicName={logic.name} fields={fields} />
               </div>
             </div>
           ))}
