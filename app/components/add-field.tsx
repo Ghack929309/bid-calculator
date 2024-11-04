@@ -245,18 +245,20 @@ export function AddField({
   trigger,
   initialField,
   isEditing = false,
+  section,
 }: {
   handleAddField?: (field: InputFieldType) => void;
   handleUpdateField?: (field: InputFieldType) => void;
   trigger?: React.ReactNode;
   initialField: InputFieldType;
   isEditing?: boolean;
+  section: string;
 }) {
   const [field, setField] = useState<InputFieldType>(initialField);
 
   const handleSave = () => {
     if (field.name.trim()) {
-      handleAddField?.({ ...field, id: uuidv4() });
+      handleAddField?.({ ...field, id: uuidv4(), section });
       setField(getInitialFieldState({ type: field.type }));
     }
   };
@@ -272,7 +274,11 @@ export function AddField({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        {trigger || <Button variant="default">Add Field</Button>}
+        {trigger || (
+          <Button disabled={!section} variant="default">
+            Add Field
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

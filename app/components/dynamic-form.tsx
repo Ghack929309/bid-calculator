@@ -28,6 +28,7 @@ import { useState } from "react";
 
 interface DynamicFormProps {
   fields: InputFieldType[];
+  section: string;
   onSubmit: (data: any) => void;
   isEditing?: boolean;
   handleUpdateField?: (field: InputFieldType) => void;
@@ -35,15 +36,16 @@ interface DynamicFormProps {
 }
 
 export function DynamicForm({
+  section,
   fields,
   onSubmit,
   isEditing = false,
   handleDeleteField,
   handleUpdateField,
 }: DynamicFormProps) {
-  const [open, setOpen] = useState(false);
+  const filteredFields = fields.filter((field) => field.section === section);
   const formSchema = z.object(
-    fields.reduce((acc, field) => {
+    filteredFields.reduce((acc, field) => {
       let validator = z.string();
 
       if (field.type === "number") {
@@ -70,6 +72,7 @@ export function DynamicForm({
       {}
     ),
   });
+
   console.log("fields from dynamic form", fields);
   return (
     <Card>
@@ -79,7 +82,7 @@ export function DynamicForm({
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {fields.map((field) => (
+            {filteredFields.map((field) => (
               <div
                 className={cn(
                   "flex w-full items-center justify-between gap-2 flex-1",
