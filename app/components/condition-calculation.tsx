@@ -76,7 +76,7 @@ export function ConditionalCalculation({
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Then</h3>
             <SimpleCalculation
-              calculation={calculation}
+              calculation={calculation.thenCalculations}
               fields={[]}
               onUpdate={() => {}}
             />
@@ -85,7 +85,7 @@ export function ConditionalCalculation({
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Else</h3>
             <SimpleCalculation
-              calculation={calculation}
+              calculation={calculation.elseCalculations}
               fields={[]}
               onUpdate={() => {}}
             />

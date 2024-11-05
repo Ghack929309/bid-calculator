@@ -28,22 +28,36 @@ export type LogicFieldType = {
   relationType: string;
 };
 
+export type OperatorType =
+  | "add"
+  | "subtract"
+  | "multiply"
+  | "divide"
+  | "percentage";
+export type CalculationFieldType = "number" | "field" | "logic";
+
+export type CalculationValue = {
+  type: CalculationFieldType;
+  fieldId: string | null;
+  value: string;
+};
+export type CalculationOperation = {
+  id: string;
+  operator: OperatorType;
+  value1: CalculationValue;
+  value2?: CalculationValue;
+};
+
 export type SimpleCalculationType = {
   id: string;
-  name: string;
+  logicId: string;
   type: "simple";
-  operation: string;
-  value: string;
-  baseField: string;
-  existingLogic: {
-    id: string;
-    name: string;
-  };
+  operations: CalculationOperation[];
 };
 
 export type ConditionalCalculationType = {
   id: string;
-  name: string;
+  logicId: string;
   type: "conditional";
   existingLogic: {
     id: string;

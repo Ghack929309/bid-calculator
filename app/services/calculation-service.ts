@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
+import { defaultOperations } from "~/lib/constant";
 import {
+  CalculationOperation,
   ConditionalCalculationType,
   ConditionType,
   SimpleCalculationType,
@@ -17,33 +19,37 @@ class CalculationService {
     return CalculationService.instance;
   }
 
-  createSimpleCalculation(): SimpleCalculationType {
+  createSimpleCalculation({
+    logicId,
+  }: {
+    logicId: string;
+  }): SimpleCalculationType {
     return {
       id: uuidv4(),
-      name: "",
+      logicId,
       type: "simple",
-      operation: "",
-      value: "",
-      baseField: "",
-      existingLogic: {
-        id: "",
-        name: "",
-      },
+      operations: [
+        { ...defaultOperations, id: uuidv4() } as CalculationOperation,
+      ],
     };
   }
 
-  createConditionalCalculation(): ConditionalCalculationType {
+  createConditionalCalculation({
+    logicId,
+  }: {
+    logicId: string;
+  }): ConditionalCalculationType {
     return {
       id: uuidv4(),
-      name: "",
+      logicId,
       type: "conditional",
       existingLogic: {
         id: "",
         name: "",
       },
       conditions: [],
-      thenCalculations: this.createSimpleCalculation(),
-      elseCalculations: this.createSimpleCalculation(),
+      thenCalculations: this.createSimpleCalculation({ logicId }),
+      elseCalculations: this.createSimpleCalculation({ logicId }),
     };
   }
 
@@ -62,15 +68,27 @@ class CalculationService {
   addCalculation({
     calculations,
     type = "simple",
+    logicId,
   }: {
     calculations: (SimpleCalculationType | ConditionalCalculationType)[];
     type?: "simple" | "conditional";
+    logicId: string;
   }) {
-    const defaultCalculation =
+    const defaultData =
       type === "simple"
-        ? this.createSimpleCalculation()
-        : this.createConditionalCalculation();
-    return [...calculations, { ...defaultCalculation, id: uuidv4(), type }];
+        ? this.createSimpleCalculation({ logicId })
+        : this.createConditionalCalculation({ logicId });
+    const newCalculations = (calculations as SimpleCalculationType[]).map(
+      (calc) => {
+        if (calc.logicId === logicId) {
+          calc.operations.push(defaultOperations as CalculationOperation);
+        }
+        return calc;
+      }
+    );
+    return newCalculations.length > 0
+      ? newCalculations
+      : [...calculations, { ...defaultData, id: uuidv4(), type }];
   }
 
   addCondition({
@@ -88,6 +106,28 @@ class CalculationService {
             ...calc.conditions,
             { ...this.createDefaultCondition(), id: uuidv4() },
           ],
+        };
+      }
+      return calc;
+    });
+  }
+
+  updateCalculationOperations({
+    calculations,
+    calculationLogicId,
+    operation,
+  }: {
+    calculations: SimpleCalculationType[];
+    calculationLogicId: string;
+    operation: CalculationOperation;
+  }) {
+    return calculations.map((calc) => {
+      if (calc.logicId === calculationLogicId) {
+        return {
+          ...calc,
+          operations: calc.operations.map((op) =>
+            op.id === operation.id ? { ...operation } : op
+          ),
         };
       }
       return calc;

@@ -9,29 +9,32 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import {
+  CalculationOperation,
   ConditionalCalculationType,
   InputFieldType,
   SimpleCalculationType,
 } from "~/lib/types";
-import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogTrigger } from "./ui/dialog";
 import { calculationService } from "~/services/calculation-service";
 import { SimpleCalculation } from "./simple-calculation";
 import { ConditionalCalculation } from "./condition-calculation";
+import { defaultOperations } from "~/lib/constant";
+import { isBrowser } from "~/lib/utils";
 
 export function AddLogic({
   fields,
-  logicName,
+  logicId,
 }: {
   fields: InputFieldType[];
-  logicName: string;
+  logicId: string;
 }) {
   const [calculations, setCalculations] = useState<
     (SimpleCalculationType | ConditionalCalculationType)[]
-  >([]);
-
+  >(isBrowser ? JSON.parse(localStorage.getItem("calculations") || "[]") : []);
+  console.log("logic id", logicId);
   const addCalculation = (type = "simple") => {
     setCalculations((prev) =>
-      calculationService.addCalculation({ calculations: prev, type })
+      calculationService.addCalculation({ calculations: prev, type, logicId })
     );
   };
 
@@ -42,9 +45,39 @@ export function AddLogic({
   };
 
   const updateCalculation = (id: string, updates: any) => {
+    const updatedCalculation = calculationService.updateCalculation({
+      calculations,
+      id,
+      updates,
+    });
+    console.log("updatedCalculation", updatedCalculation);
+
+    setCalculations(updatedCalculation);
+  };
+
+  const removeCalculation = (id: string) => {
     setCalculations((prev) =>
-      calculationService.updateCalculation({ calculations: prev, id, updates })
+      calculationService.removeCalculation({ calculations: prev, id })
     );
+  };
+
+  const updateOperation = (
+    logicId: string,
+    operation: CalculationOperation
+  ) => {
+    setCalculations((prev) =>
+      calculationService.updateCalculationOperations({
+        calculations: prev as SimpleCalculationType[],
+        calculationLogicId: logicId,
+        operation,
+      })
+    );
+  };
+
+  const saveCalculations = () => {
+    if (isBrowser) {
+      localStorage.setItem("calculations", JSON.stringify(calculations));
+    }
   };
 
   const updateCondition = (
@@ -61,6 +94,7 @@ export function AddLogic({
       })
     );
   };
+
   console.log("calculations", calculations);
 
   return (
@@ -83,12 +117,12 @@ export function AddLogic({
                 calc.type === "simple" ? (
                   <SimpleCalculation
                     key={calc.id}
+                    defaultData={defaultOperations as CalculationOperation}
                     calculation={calc}
                     fields={fields}
                     onUpdate={updateCalculation}
-                    onDelete={(id) =>
-                      setCalculations((prev) => prev.filter((c) => c.id !== id))
-                    }
+                    updateOperation={updateOperation}
+                    onDelete={removeCalculation}
                   />
                 ) : (
                   <ConditionalCalculation
@@ -105,12 +139,15 @@ export function AddLogic({
             <div className="flex space-x-2">
               <Button
                 variant="outline"
-                onClick={() => addCalculation("simple")}
+                onClick={() => {
+                  addCalculation("simple");
+                }}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Simple Calculation
               </Button>
               <Button
+                className="mr-auto"
                 variant="outline"
                 onClick={() => addCalculation("conditional")}
               >
@@ -118,6 +155,9 @@ export function AddLogic({
                 Add Conditional Calculation
               </Button>
             </div>
+            <Button onClick={saveCalculations} variant="default">
+              Save
+            </Button>
           </CardContent>
         </Card>
       </DialogContent>

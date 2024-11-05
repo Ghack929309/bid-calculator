@@ -18,3 +18,18 @@ export const logicalOperators = [
   { value: "and", label: "AND" },
   { value: "or", label: "OR" },
 ];
+
+export const defaultOperations = {
+  id: "",
+  operator: "add",
+  value1: {
+    type: "field",
+    fieldId: "",
+    value: "",
+  },
+  value2: {
+    type: "field",
+    fieldId: "",
+    value: "",
+  },
+};
