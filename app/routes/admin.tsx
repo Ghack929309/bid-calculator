@@ -8,33 +8,117 @@ import { getInitialFieldState, isBrowser } from "~/lib/utils";
 import { AddSection } from "~/components/add-section";
 import { v4 as uuidv4 } from "uuid";
 import { CreateField } from "~/components/create-field";
+import { ActionFunctionArgs, json, LoaderFunctionArgs } from "@remix-run/node";
+import { db } from "~/services/database-service";
+import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
+
+enum Action {
+  createSection = "createSection",
+  createField = "createField",
+  updateField = "updateField",
+  deleteField = "deleteField",
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  try {
+    const body = await request.json();
+    const { action, data } = body;
+    switch (action) {
+      case Action.createSection: {
+        const sections = await db.getSections();
+        if (sections.includes(data.name)) {
+          return json(
+            { error: "Section already exists", data: null },
+            { status: 400 }
+          );
+        }
+        const section = await db.createSection(data.name);
+        return json({ error: null, data: section });
+      }
+      case Action.createField: {
+        const { sectionId, field } = data;
+        return db.createField(field, sectionId);
+      }
+      default:
+        return json({ error: "Invalid action" }, { status: 400 });
+    }
+  } catch (error) {
+    console.error("Failed to perform action", error);
+    return json(
+      { error: "Failed to perform action", data: null },
+      { status: 500 }
+    );
+  }
+}
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  try {
+    const searchParams = new URLSearchParams(request.url);
+    const sections = await db.getSections();
+    const sectionId =
+      searchParams.get("section") || sections?.[0]?.id || undefined;
+    console.log("sectionId", sectionId);
+    if (!sectionId) {
+      return json({
+        fields: [],
+        sections: [],
+        logicFields: [],
+        sectionId: undefined,
+      });
+    }
+    const fields = await db.getFields(sectionId);
+    console.log("fields", fields);
+    const logicFields = await db.getLogicFields(sectionId);
+    return json({ fields, sections, logicFields, sectionId });
+  } catch (error) {
+    console.error("Failed to fetch data", error);
+    return json(
+      { fields: [], sections: [], logicFields: [], sectionId: undefined },
+      { status: 500 }
+    );
+  }
+}
 
 const CalculatorAdmin = () => {
-  const [saved, setSaved] = useState(false);
-  const [fields, setFields] = useState<InputFieldType[]>(
-    isBrowser ? JSON.parse(localStorage?.getItem("fields") || "[]") : []
-  );
-  const [sections, setSections] = useState<string[]>(
-    isBrowser ? JSON.parse(localStorage?.getItem("sections") || "[]") : []
-  );
-  const [activeTab, setActiveTab] = useState(sections[0]);
+  const { fields, sections, logicFields, sectionId } =
+    useLoaderData<typeof loader>();
+  const calcFetcher = useFetcher();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [logicFields, setLogicFields] = useState<
-    { id: string; name: string; section: string }[]
-  >(isBrowser ? JSON.parse(localStorage?.getItem("logicFields") || "[]") : []);
-  const logicsBasedOnActiveTab = useMemo(
-    () => logicFields.filter((f) => f.section === activeTab),
-    [logicFields, activeTab]
-  );
+  console.log("fields", fields);
+  console.log("sections", sections);
+  console.log("logicFields", logicFields);
+  const [saved, setSaved] = useState(false);
+  // const [fields, setFields] = useState<InputFieldType[]>(
+  //   isBrowser ? JSON.parse(localStorage?.getItem("fields") || "[]") : []
+  // );
+  // const [sections, setSections] = useState<string[]>(
+  //   isBrowser ? JSON.parse(localStorage?.getItem("sections") || "[]") : []
+  // );
+  const [activeTab, setActiveTab] = useState(sectionId);
+
+  // const [logicFields, setLogicFields] = useState<
+  //   { id: string; name: string; section: string }[]
+  // >(isBrowser ? JSON.parse(localStorage?.getItem("logicFields") || "[]") : []);
+  // const logicsBasedOnActiveTab = useMemo(
+  //   () => logicFields?.filter((f) => f.section === activeTab),
+  //   [logicFields, activeTab]
+  // );
   console.log("logicFields", logicFields);
   const handleSave = () => {
     // This would send the data to your backend
   };
 
   const handleAddSection = (section: string) => {
-    // TODO: validate section name, check if it already exists
-    setSections([...sections, section]);
-    localStorage?.setItem("sections", JSON.stringify([...sections, section]));
+    calcFetcher.submit(
+      { action: Action.createSection, data: { name: section } },
+      { method: "post", encType: "application/json" }
+    );
+  };
+
+  const handleSelectSectionTab = (sectionId: string) => {
+    setActiveTab(sectionId);
+    setSearchParams({ section: sectionId });
   };
 
   const handleDeleteSection = (section: string) => {
@@ -44,8 +128,11 @@ const CalculatorAdmin = () => {
   };
 
   const handleAddField = (field: InputFieldType) => {
-    setFields([...fields, field]);
-    localStorage?.setItem("fields", JSON.stringify([...fields, field]));
+    if (!activeTab) return;
+    calcFetcher.submit(
+      { action: Action.createField, data: { field, sectionId: activeTab } },
+      { method: "post", encType: "application/json" }
+    );
   };
 
   const handleUpdateField = (field: InputFieldType) => {
@@ -89,15 +176,17 @@ const CalculatorAdmin = () => {
 
         {/* Navigation Tabs */}
         <div className="flex space-x-1 rounded-xl bg-gray-100 p-1 mb-6">
-          {sections.map((section) => (
+          {sections?.map((section) => (
             <button
-              key={section}
-              onClick={() => setActiveTab(section)}
+              key={section?.id}
+              onClick={() => handleSelectSectionTab(section?.id)}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
-                activeTab === section ? "bg-white shadow" : "hover:bg-gray-200"
+                activeTab === section?.id
+                  ? "bg-white shadow"
+                  : "hover:bg-gray-200"
               }`}
             >
-              <span>{section}</span>
+              <span>{section?.name}</span>
             </button>
           ))}
           <AddSection handleAddSection={handleAddSection} />
@@ -138,7 +227,7 @@ const CalculatorAdmin = () => {
           <p className="text-gray-600 mt-2">Manage logic for each field</p>
         </div>
         <div>
-          {logicsBasedOnActiveTab?.map((logic) => (
+          {[]?.map((logic) => (
             <div key={logic.id} className="flex items-center justify-between">
               <p>{logic.name}</p>
               <div className="flex items-center space-x-2">

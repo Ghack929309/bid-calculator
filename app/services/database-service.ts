@@ -13,6 +13,11 @@ class DatabaseService {
 
   private constructor() {
     this.prisma = new PrismaClient();
+    this.prisma.$connect();
+
+    process.on("beforeExit", () => {
+      this.prisma.$disconnect();
+    });
   }
 
   static getInstance(): DatabaseService {
@@ -23,13 +28,13 @@ class DatabaseService {
   }
 
   // Field Methods
-  async createField(field: InputFieldType) {
-    const { options, section, ...fieldData } = field;
+  async createField(field: InputFieldType, sectionId: string) {
+    const { options, ...fieldData } = field;
     return this.prisma.field.create({
       data: {
         ...fieldData,
         section: {
-          connect: { id: section },
+          connect: { id: sectionId },
         },
         options: {
           create: options?.map((opt: string) => ({ value: opt })) || [],
@@ -38,6 +43,12 @@ class DatabaseService {
       include: {
         options: true,
       },
+    });
+  }
+
+  async createSection(section: string) {
+    return this.prisma.section.create({
+      data: { name: section },
     });
   }
 
@@ -57,10 +68,11 @@ class DatabaseService {
     });
   }
 
-  async getFields(section: string) {
+  async getFields(sectionId?: string) {
+    if (!sectionId) return null;
     return this.prisma.field.findMany({
       where: {
-        sectionId: section,
+        sectionId,
       },
       include: {
         options: true,
@@ -92,8 +104,13 @@ class DatabaseService {
     });
   }
 
-  async getLogicFields() {
-    return this.prisma.logicField.findMany({});
+  async getLogicFields(sectionId?: string) {
+    if (!sectionId) return null;
+    return this.prisma.logicField.findMany({
+      where: {
+        sectionId,
+      },
+    });
   }
 
   // Calculation Methods
@@ -149,6 +166,10 @@ class DatabaseService {
         },
       },
     });
+  }
+
+  async getSections() {
+    return this.prisma.section.findMany({});
   }
 
   // Helper methods

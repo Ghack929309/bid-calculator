@@ -54,7 +54,7 @@ class CalculationService {
       type: CalculationType.SIMPLE,
       operations: [{ ...defaultSimpleOperations, id: uuidv4() }],
     };
-    db.createCalculation(newCalculation as SimpleCalculationType);
+    // db.createCalculation(newCalculation as SimpleCalculationType);
     return newCalculation as SimpleCalculationType;
   }
 
@@ -106,7 +106,7 @@ class CalculationService {
       const id = uuidv4();
       const defaultData = this.createSimpleCalculation({ logicId });
 
-      db.createCalculation({ ...defaultData, id });
+      // db.createCalculation({ ...defaultData, id });
       return [...calculations, { ...defaultData, id }];
     }
 

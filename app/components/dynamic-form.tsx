@@ -43,9 +43,10 @@ export function DynamicForm({
   handleDeleteField,
   handleUpdateField,
 }: DynamicFormProps) {
-  const filteredFields = fields.filter((field) => field.section === section);
+  console.log("section from dynamic form", fields);
+
   const formSchema = z.object(
-    filteredFields.reduce((acc, field) => {
+    fields.reduce((acc, field) => {
       let validator = z.string();
 
       if (field.type === "number") {
@@ -82,7 +83,7 @@ export function DynamicForm({
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {filteredFields.map((field) => (
+            {fields.map((field) => (
               <div
                 className={cn(
                   "flex w-full items-center justify-between gap-2 flex-1",
