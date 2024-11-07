@@ -14,11 +14,11 @@ import {
   InputFieldType,
   SimpleCalculationType,
 } from "~/lib/types";
-import { Dialog, DialogClose, DialogContent, DialogTrigger } from "./ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import { calculationService } from "~/services/calculation-service";
 import { SimpleCalculation } from "./simple-calculation";
 import { ConditionalCalculation } from "./condition-calculation";
-import { defaultOperations } from "~/lib/constant";
+import { defaultSimpleOperations } from "~/lib/constant";
 import { isBrowser } from "~/lib/utils";
 
 export function AddLogic({
@@ -28,14 +28,21 @@ export function AddLogic({
   fields: InputFieldType[];
   logicId: string;
 }) {
+  const [openModal, setOpenModal] = useState(false);
   const [calculations, setCalculations] = useState<
     (SimpleCalculationType | ConditionalCalculationType)[]
   >(isBrowser ? JSON.parse(localStorage.getItem("calculations") || "[]") : []);
-  console.log("logic id", logicId);
+  const selectedCalculationLogic = calculations.find(
+    (calc) => calc.logicId === logicId
+  );
   const addCalculation = (type = "simple") => {
-    setCalculations((prev) =>
-      calculationService.addCalculation({ calculations: prev, type, logicId })
-    );
+    const newCalculation = calculationService.addCalculation({
+      calculations: calculations as SimpleCalculationType[],
+      type: "simple",
+      logicId,
+    });
+    console.log("newCalculation", newCalculation);
+    setCalculations(newCalculation);
   };
 
   const addCondition = (calculationId: string) => {
@@ -52,12 +59,16 @@ export function AddLogic({
     });
     console.log("updatedCalculation", updatedCalculation);
 
-    setCalculations(updatedCalculation);
+    setCalculations(updatedCalculation as SimpleCalculationType[]);
   };
 
-  const removeCalculation = (id: string) => {
+  const removeCalculation = (calculationId: string, operationId: string) => {
     setCalculations((prev) =>
-      calculationService.removeCalculation({ calculations: prev, id })
+      calculationService.removeCalculation({
+        calculations: prev,
+        calculationId,
+        operationId,
+      })
     );
   };
 
@@ -65,19 +76,20 @@ export function AddLogic({
     logicId: string,
     operation: CalculationOperation
   ) => {
-    setCalculations((prev) =>
-      calculationService.updateCalculationOperations({
-        calculations: prev as SimpleCalculationType[],
-        calculationLogicId: logicId,
-        operation,
-      })
-    );
+    const update = calculationService.updateCalculationOperations({
+      calculations: calculations as SimpleCalculationType[],
+      calculationLogicId: logicId,
+      operation,
+    });
+    console.log("update", update);
+    setCalculations(update);
   };
 
   const saveCalculations = () => {
     if (isBrowser) {
       localStorage.setItem("calculations", JSON.stringify(calculations));
     }
+    setOpenModal(false);
   };
 
   const updateCondition = (
@@ -98,7 +110,7 @@ export function AddLogic({
   console.log("calculations", calculations);
 
   return (
-    <Dialog>
+    <Dialog open={openModal} onOpenChange={(open) => setOpenModal(open)}>
       <DialogTrigger asChild>
         <Button variant="default">Add Logic</Button>
       </DialogTrigger>
@@ -113,27 +125,13 @@ export function AddLogic({
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
-              {calculations.map((calc) =>
-                calc.type === "simple" ? (
-                  <SimpleCalculation
-                    key={calc.id}
-                    defaultData={defaultOperations as CalculationOperation}
-                    calculation={calc}
-                    fields={fields}
-                    onUpdate={updateCalculation}
-                    updateOperation={updateOperation}
-                    onDelete={removeCalculation}
-                  />
-                ) : (
-                  <ConditionalCalculation
-                    key={calc.id}
-                    calculation={calc}
-                    fields={fields}
-                    onUpdate={updateCalculation}
-                    onAddCondition={addCondition}
-                  />
-                )
-              )}
+              <SimpleCalculation
+                defaultData={defaultSimpleOperations as CalculationOperation}
+                calculation={selectedCalculationLogic as SimpleCalculationType}
+                fields={fields}
+                updateOperation={updateOperation}
+                onDelete={removeCalculation}
+              />
             </div>
 
             <div className="flex space-x-2">

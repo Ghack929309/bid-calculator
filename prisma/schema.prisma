@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Section {
+  id          String       @id @default(uuid())
+  name        String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  fields      Field[]
+  logicFields LogicField[]
+}
+
+model Field {
+  id          String             @id @default(uuid())
+  name        String
+  sectionId   String
+  type        String // "number" | "text" | "select" | "checkbox"
+  required    Boolean            @default(false)
+  enabled     Boolean            @default(true)
+  options     Option[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  section     Section            @relation(fields: [sectionId], references: [id])
+  fieldValues CalculationValue[] @relation("FieldValue")
+}
+
+model Option {
+  id      String @id @default(uuid())
+  value   String
+  fieldId String
+  field   Field  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+}
+
+model LogicField {
+  id           String             @id @default(uuid())
+  name         String
+  sectionId    String
+  section      Section            @relation(fields: [sectionId], references: [id])
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  logicValues  CalculationValue[] @relation("LogicValue")
+  calculations Calculation[]      @relation("LogicCalculation")
+}
+
+model Calculation {
+  id         String      @id @default(uuid())
+  logicId    String
+  type       String // "simple" | "conditional"
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  logicField LogicField  @relation("LogicCalculation", fields: [logicId], references: [id], onDelete: Cascade)
+  operations Operation[]
+}
+
+model Operation {
+  id            String            @id @default(uuid())
+  operator      String // "add" | "subtract" | "multiply" | "divide" | "percentage"
+  calculationId String
+  calculation   Calculation       @relation(fields: [calculationId], references: [id], onDelete: Cascade)
+  value1        CalculationValue  @relation("Value1", fields: [value1Id], references: [id])
+  value2        CalculationValue? @relation("Value2", fields: [value2Id], references: [id])
+  value1Id      String
+  value2Id      String?
+}
+
+model CalculationValue {
+  id                 String      @id @default(uuid())
+  type               String // "number" | "field" | "logic"
+  value              String?
+  fieldId            String?
+  logicId            String?
+  field              Field?      @relation("FieldValue", fields: [fieldId], references: [id])
+  logic              LogicField? @relation("LogicValue", fields: [logicId], references: [id])
+  operationsAsValue1 Operation[] @relation("Value1")
+  operationsAsValue2 Operation[] @relation("Value2")
+}

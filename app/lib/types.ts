@@ -1,6 +1,11 @@
 export type FieldType = "number" | "text" | "select" | "checkbox";
 export type InputFieldType = SimpleField | OptionsField;
 
+export enum CalculationType {
+  SIMPLE = "simple",
+  CONDITIONAL = "conditional",
+}
+
 interface BaseField {
   id: string;
   section: string;
@@ -20,12 +25,9 @@ export interface OptionsField extends BaseField {
 }
 
 export type LogicFieldType = {
+  id: string;
+  section: string;
   name: string;
-  value: string;
-  isRequired: boolean;
-  type: FieldType;
-  relatedField: string;
-  relationType: string;
 };
 
 export type OperatorType =
@@ -51,29 +53,6 @@ export type CalculationOperation = {
 export type SimpleCalculationType = {
   id: string;
   logicId: string;
-  type: "simple";
+  type: CalculationType.SIMPLE;
   operations: CalculationOperation[];
-};
-
-export type ConditionalCalculationType = {
-  id: string;
-  logicId: string;
-  type: "conditional";
-  existingLogic: {
-    id: string;
-    name: string;
-  };
-  conditions: ConditionType[];
-  thenCalculations: SimpleCalculationType;
-  elseCalculations: SimpleCalculationType;
-};
-
-export type ConditionType = {
-  id: string;
-  field: string;
-  type: "condition";
-  comparison: string;
-  value: string;
-  value2: string;
-  logicalOperator: "and" | "or";
 };

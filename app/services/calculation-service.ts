@@ -1,11 +1,35 @@
 import { v4 as uuidv4 } from "uuid";
-import { defaultOperations } from "~/lib/constant";
+import { defaultSimpleOperations } from "~/lib/constant";
 import {
   CalculationOperation,
-  ConditionalCalculationType,
-  ConditionType,
+  CalculationType,
+  CalculationValue,
+  InputFieldType,
+  LogicFieldType,
+  OperatorType,
   SimpleCalculationType,
 } from "~/lib/types";
+import { db } from "./database-service";
+
+type ValidationError = {
+  message: string;
+  field: string;
+};
+type ResolvedOperation = {
+  operator: OperatorType;
+  value1: number;
+  value2: number;
+};
+
+type ResolvedCalculation = {
+  operations: ResolvedOperation[];
+};
+
+type PreparedCalculationResult = {
+  isValid: boolean;
+  errors?: ValidationError[];
+  data?: ResolvedCalculation;
+};
 
 class CalculationService {
   private static instance: CalculationService;
@@ -24,93 +48,106 @@ class CalculationService {
   }: {
     logicId: string;
   }): SimpleCalculationType {
-    return {
+    const newCalculation = {
       id: uuidv4(),
       logicId,
-      type: "simple",
-      operations: [
-        { ...defaultOperations, id: uuidv4() } as CalculationOperation,
-      ],
+      type: CalculationType.SIMPLE,
+      operations: [{ ...defaultSimpleOperations, id: uuidv4() }],
     };
+    db.createCalculation(newCalculation as SimpleCalculationType);
+    return newCalculation as SimpleCalculationType;
   }
 
-  createConditionalCalculation({
+  // createConditionalCalculation({
+  //   logicId,
+  // }: {
+  //   logicId: string;
+  // }): ConditionalCalculationType {
+  //   return {
+  //     id: uuidv4(),
+  //     logicId,
+  //     type: "conditional",
+  //     existingLogic: {
+  //       id: "",
+  //       name: "",
+  //     },
+  //     conditions: [],
+  //     thenCalculations: this.createSimpleCalculation({ logicId }),
+  //     elseCalculations: this.createSimpleCalculation({ logicId }),
+  //   };
+  // }
+
+  // createDefaultCondition(): ConditionType {
+  //   return {
+  //     id: uuidv4(),
+  //     field: "",
+  //     type: "condition",
+  //     comparison: "",
+  //     value: "",
+  //     value2: "",
+  //     logicalOperator: "and",
+  //   };
+  // }
+
+  async addCalculation({
+    calculations,
     logicId,
   }: {
-    logicId: string;
-  }): ConditionalCalculationType {
-    return {
-      id: uuidv4(),
-      logicId,
-      type: "conditional",
-      existingLogic: {
-        id: "",
-        name: "",
-      },
-      conditions: [],
-      thenCalculations: this.createSimpleCalculation({ logicId }),
-      elseCalculations: this.createSimpleCalculation({ logicId }),
-    };
-  }
-
-  createDefaultCondition(): ConditionType {
-    return {
-      id: uuidv4(),
-      field: "",
-      type: "condition",
-      comparison: "",
-      value: "",
-      value2: "",
-      logicalOperator: "and",
-    };
-  }
-
-  addCalculation({
-    calculations,
-    type = "simple",
-    logicId,
-  }: {
-    calculations: (SimpleCalculationType | ConditionalCalculationType)[];
-    type?: "simple" | "conditional";
+    calculations: SimpleCalculationType[];
+    type?: CalculationType;
     logicId: string;
   }) {
-    const defaultData =
-      type === "simple"
-        ? this.createSimpleCalculation({ logicId })
-        : this.createConditionalCalculation({ logicId });
-    const newCalculations = (calculations as SimpleCalculationType[]).map(
-      (calc) => {
-        if (calc.logicId === logicId) {
-          calc.operations.push(defaultOperations as CalculationOperation);
-        }
-        return calc;
-      }
-    );
-    return newCalculations.length > 0
-      ? newCalculations
-      : [...calculations, { ...defaultData, id: uuidv4(), type }];
-  }
+    const existingCalculation = calculations.find((c) => c.logicId === logicId);
 
-  addCondition({
-    calculations,
-    calculationId,
-  }: {
-    calculations: (SimpleCalculationType | ConditionalCalculationType)[];
-    calculationId: string;
-  }) {
+    if (
+      !existingCalculation ||
+      existingCalculation.type !== CalculationType.SIMPLE
+    ) {
+      const id = uuidv4();
+      const defaultData = this.createSimpleCalculation({ logicId });
+
+      db.createCalculation({ ...defaultData, id });
+      return [...calculations, { ...defaultData, id }];
+    }
+
+    // Add new operation to existing calculation
     return calculations.map((calc) => {
-      if (calc.id === calculationId && "conditions" in calc) {
+      if (calc.logicId === logicId && calc.type === CalculationType.SIMPLE) {
         return {
           ...calc,
-          conditions: [
-            ...calc.conditions,
-            { ...this.createDefaultCondition(), id: uuidv4() },
+          operations: [
+            ...calc.operations,
+            {
+              ...defaultSimpleOperations,
+              id: uuidv4(),
+            } as CalculationOperation,
           ],
         };
       }
       return calc;
     });
   }
+
+  // addCondition({
+  //   calculations,
+  //   calculationId,
+  // }: {
+  //   calculations: (SimpleCalculationType | ConditionalCalculationType)[];
+  //   calculationId: string;
+  // }) {
+  //   return calculations.map((calc) => {
+  //     if (calc.id === calculationId && "conditions" in calc) {
+  //       return {
+  //         ...calc,
+  //         conditions: [
+  //           ...calc.conditions,
+  //           { ...this.createDefaultCondition(), id: uuidv4() },
+  //         ],
+  //       };
+  //     }
+  //     return calc;
+  //   });
+  // }
 
   updateCalculationOperations({
     calculations,
@@ -139,67 +176,223 @@ class CalculationService {
     id,
     updates,
   }: {
-    calculations: (SimpleCalculationType | ConditionalCalculationType)[];
+    calculations: SimpleCalculationType[];
     id: string;
-    updates: Partial<SimpleCalculationType | ConditionalCalculationType>;
+    updates: Partial<SimpleCalculationType>;
   }) {
     return calculations.map((calc) =>
       calc.id === id ? { ...calc, ...updates } : calc
     );
   }
 
-  updateCondition({
-    calculations,
-    calculationId,
-    conditionId,
-    updates,
-  }: {
-    calculations: (SimpleCalculationType | ConditionalCalculationType)[];
-    calculationId: string;
-    conditionId: string;
-    updates: Partial<ConditionType>;
-  }) {
-    return calculations.map((calc) => {
-      if (calc.id === calculationId && "conditions" in calc) {
-        return {
-          ...calc,
-          conditions: calc.conditions.map((cond) =>
-            cond.id === conditionId ? { ...cond, ...updates } : cond
-          ),
-        };
-      }
-      return calc;
-    });
-  }
-
   removeCalculation({
     calculations,
-    id,
-  }: {
-    calculations: (SimpleCalculationType | ConditionalCalculationType)[];
-    id: string;
-  }) {
-    return calculations.filter((c) => c.id !== id);
-  }
-
-  removeCondition({
-    calculations,
     calculationId,
-    conditionId,
+    operationId,
   }: {
-    calculations: (SimpleCalculationType | ConditionalCalculationType)[];
+    calculations: SimpleCalculationType[];
     calculationId: string;
-    conditionId: string;
+    operationId: string;
   }) {
     return calculations.map((calc) => {
-      if (calc.id === calculationId && "conditions" in calc) {
+      if (calc.id === calculationId && "operations" in calc) {
         return {
           ...calc,
-          conditions: calc.conditions.filter((c) => c.id !== conditionId),
+          operations: calc.operations.filter((op) => op.id !== operationId),
         };
       }
       return calc;
     });
+  }
+
+  // updateCondition({
+  //   calculations,
+  //   calculationId,
+  //   conditionId,
+  //   updates,
+  // }: {
+  //   calculations: (SimpleCalculationType | ConditionalCalculationType)[];
+  //   calculationId: string;
+  //   conditionId: string;
+  //   updates: Partial<ConditionType>;
+  // }) {
+  //   return calculations.map((calc) => {
+  //     if (calc.id === calculationId && "conditions" in calc) {
+  //       return {
+  //         ...calc,
+  //         conditions: calc.conditions.map((cond) =>
+  //           cond.id === conditionId ? { ...cond, ...updates } : cond
+  //         ),
+  //       };
+  //     }
+  //     return calc;
+  //   });
+  // }
+
+  // removeCondition({
+  //   calculations,
+  //   calculationId,
+  //   conditionId,
+  // }: {
+  //   calculations: (SimpleCalculationType | ConditionalCalculationType)[];
+  //   calculationId: string;
+  //   conditionId: string;
+  // }) {
+  //   return calculations.map((calc) => {
+  //     if (calc.id === calculationId && "conditions" in calc) {
+  //       return {
+  //         ...calc,
+  //         conditions: calc.conditions.filter((c) => c.id !== conditionId),
+  //       };
+  //     }
+  //     return calc;
+  //   });
+  // }
+  #computeOperation(operation: CalculationOperation): number {
+    const value1 = parseFloat(operation.value1.value) || 0;
+    const value2 = parseFloat(operation.value2?.value || "0") || 0;
+
+    switch (operation.operator) {
+      case "add":
+        return value1 + value2;
+      case "subtract":
+        return value1 - value2;
+      case "multiply":
+        return value1 * value2;
+      case "divide":
+        return value2 !== 0 ? value1 / value2 : 0;
+      case "percentage":
+        return (value1 * value2) / 100;
+      default:
+        return 0;
+    }
+  }
+
+  computeCalculation(calculation: SimpleCalculationType): number {
+    if (!calculation?.operations?.length) return 0;
+
+    return calculation.operations.reduce((total, operation) => {
+      return total + this.#computeOperation(operation);
+    }, 0);
+  }
+
+  validateAndPrepareCalculation(
+    calculation: SimpleCalculationType,
+    formFields: InputFieldType[],
+    formData: Record<string, string>,
+    logicFields: Record<string, LogicFieldType>
+  ): PreparedCalculationResult {
+    const errors: ValidationError[] = [];
+
+    // Validate and prepare each operation
+    const operations = calculation.operations.map((op, index) => {
+      const value1Result = this.validateAndResolveValue(
+        op.value1,
+        formFields,
+        formData,
+        logicFields,
+        `Operation ${index + 1} - Value 1`
+      );
+      const value2Result = this.validateAndResolveValue(
+        op.value2 || {
+          type: "number",
+          fieldId: null,
+          value: "0",
+        },
+        formFields,
+        formData,
+        logicFields,
+        `Operation ${index + 1} - Value 2`
+      );
+
+      // Collect any errors
+      if (value1Result.error) errors.push(value1Result.error);
+      if (value2Result.error) errors.push(value2Result.error);
+
+      return {
+        operator: op.operator,
+        value1: value1Result.value,
+        value2: value2Result.value,
+      };
+    });
+
+    if (errors.length > 0) {
+      return {
+        isValid: false,
+        errors,
+      };
+    }
+
+    return {
+      isValid: true,
+      data: { operations },
+    };
+  }
+
+  private validateAndResolveValue(
+    value: CalculationValue,
+    formFields: InputFieldType[],
+    formData: Record<string, string>,
+    logicFields: Record<string, LogicFieldType>,
+    fieldIdentifier: string
+  ): { value: number; error?: ValidationError } {
+    switch (value.type) {
+      case "number": {
+        const numValue = parseFloat(value.value);
+        if (isNaN(numValue)) {
+          return {
+            value: 0,
+            error: {
+              field: fieldIdentifier,
+              message: "Invalid number value",
+            },
+          };
+        }
+        return { value: numValue };
+      }
+
+      case "field": {
+        const field = formFields.find((f) => f.id === value.fieldId);
+        if (!field) {
+          return {
+            value: 0,
+            error: {
+              field: fieldIdentifier,
+              message: "Field not found",
+            },
+          };
+        }
+        if (field.type !== "number") {
+          return {
+            value: 0,
+            error: {
+              field: fieldIdentifier,
+              message: "Field must be of type number",
+            },
+          };
+        }
+        const fieldValue = parseFloat(formData[value.fieldId || ""] || "0");
+        if (isNaN(fieldValue)) {
+          return {
+            value: 0,
+            error: {
+              field: fieldIdentifier,
+              message: "Invalid field value",
+            },
+          };
+        }
+        return { value: fieldValue };
+      }
+
+      default:
+        return {
+          value: 0,
+          error: {
+            field: fieldIdentifier,
+            message: "Invalid value type",
+          },
+        };
+    }
   }
 }
 

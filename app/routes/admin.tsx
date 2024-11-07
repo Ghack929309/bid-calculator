@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pencil, Shield } from "lucide-react";
 import { AddLogic } from "~/components/add-logic";
-import { LogicFieldType, InputFieldType } from "~/lib/types";
+import { InputFieldType } from "~/lib/types";
 import { AddField } from "~/components/add-field";
 import { DynamicForm } from "~/components/dynamic-form";
 import { getInitialFieldState, isBrowser } from "~/lib/utils";
@@ -14,14 +14,19 @@ const CalculatorAdmin = () => {
   const [fields, setFields] = useState<InputFieldType[]>(
     isBrowser ? JSON.parse(localStorage?.getItem("fields") || "[]") : []
   );
-  const [logicFields, setLogicFields] = useState<
-    { id: string; name: string }[]
-  >(isBrowser ? JSON.parse(localStorage?.getItem("logicFields") || "[]") : []);
   const [sections, setSections] = useState<string[]>(
     isBrowser ? JSON.parse(localStorage?.getItem("sections") || "[]") : []
   );
   const [activeTab, setActiveTab] = useState(sections[0]);
 
+  const [logicFields, setLogicFields] = useState<
+    { id: string; name: string; section: string }[]
+  >(isBrowser ? JSON.parse(localStorage?.getItem("logicFields") || "[]") : []);
+  const logicsBasedOnActiveTab = useMemo(
+    () => logicFields.filter((f) => f.section === activeTab),
+    [logicFields, activeTab]
+  );
+  console.log("logicFields", logicFields);
   const handleSave = () => {
     // This would send the data to your backend
   };
@@ -38,21 +43,12 @@ const CalculatorAdmin = () => {
     localStorage?.setItem("sections", JSON.stringify(updatedSections));
   };
 
-  const handleAddLogic = (field: LogicFieldType) => {
-    setLogicFields([...logicFields, field]);
-    localStorage?.setItem(
-      "logicFields",
-      JSON.stringify([...logicFields, field])
-    );
-  };
-
   const handleAddField = (field: InputFieldType) => {
     setFields([...fields, field]);
     localStorage?.setItem("fields", JSON.stringify([...fields, field]));
   };
 
   const handleUpdateField = (field: InputFieldType) => {
-    console.log("field from handleUpdateField", field);
     const isFieldExists = fields.find((f) => f.id === field.id);
     if (isFieldExists) {
       const updatedFields = fields.map((f) => (f.id === field.id ? field : f));
@@ -68,15 +64,15 @@ const CalculatorAdmin = () => {
   };
   const handleAddLogicalField = (name: string) => {
     const id = uuidv4();
-    setLogicFields((prev) => [...prev, { id, name }]);
+    setLogicFields((prev) => [...prev, { id, name, section: activeTab }]);
     localStorage?.setItem(
       "logicFields",
-      JSON.stringify([...logicFields, { id, name }])
+      JSON.stringify([...logicFields, { id, name, section: activeTab }])
     );
   };
   const handleUpdateLogicalField = (id: string, name: string) => {
     const updatedLogic = logicFields.map((f) =>
-      f.id === id ? { id, name } : f
+      f.id === id ? { id, name, section: activeTab } : f
     );
     setLogicFields(updatedLogic);
     localStorage?.setItem("logicFields", JSON.stringify(updatedLogic));
@@ -142,7 +138,7 @@ const CalculatorAdmin = () => {
           <p className="text-gray-600 mt-2">Manage logic for each field</p>
         </div>
         <div>
-          {logicFields?.map((logic) => (
+          {logicsBasedOnActiveTab?.map((logic) => (
             <div key={logic.id} className="flex items-center justify-between">
               <p>{logic.name}</p>
               <div className="flex items-center space-x-2">

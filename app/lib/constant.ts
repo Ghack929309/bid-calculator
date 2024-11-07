@@ -19,9 +19,10 @@ export const logicalOperators = [
   { value: "or", label: "OR" },
 ];
 
-export const defaultOperations = {
+export const defaultSimpleOperations = {
   id: "",
   operator: "add",
+  section: "",
   value1: {
     type: "field",
     fieldId: "",

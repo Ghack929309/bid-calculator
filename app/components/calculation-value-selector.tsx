@@ -42,7 +42,7 @@ export function CalculationValueSelector({
       fieldId: selectedType === "number" ? null : value,
     });
   };
-  console.log("defaultValue", defaultValue);
+
   return (
     <div className="space-y-2">
       <RadioGroup
@@ -83,10 +83,7 @@ export function CalculationValueSelector({
       ) : (
         <Select onValueChange={handleValueChange}>
           <SelectTrigger className="w-full bg-white">
-            <SelectValue
-              defaultValue={defaultValue}
-              placeholder={placeholder}
-            />
+            <SelectValue placeholder={defaultValue || placeholder} />
           </SelectTrigger>
           <SelectContent>
             {selectedType === "field"

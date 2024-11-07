@@ -20,11 +20,10 @@ import { isBrowser } from "~/lib/utils";
 import { CalculationValueSelector } from "~/components/calculation-value-selector";
 
 interface SimpleCalculationProps {
-  calculation: SimpleCalculationType;
+  calculation?: SimpleCalculationType;
   fields: InputFieldType[];
   defaultData: CalculationOperation;
-  onUpdate: (id: string, updates: any) => void;
-  onDelete: (id: string) => void;
+  onDelete: (calculationId: string, operationId: string) => void;
   updateOperation: (
     calculationLogicId: string,
     newOperation: CalculationOperation
@@ -34,7 +33,6 @@ interface SimpleCalculationProps {
 export function SimpleCalculation({
   calculation,
   fields,
-  onUpdate,
   onDelete,
   updateOperation,
   defaultData,
@@ -71,10 +69,10 @@ export function SimpleCalculation({
       [where]: { type, fieldId, value },
     };
     setDefaultOperations(updatedOperation);
-    updateOperation(calculation.logicId, updatedOperation);
+    updateOperation(calculation?.logicId || "", updatedOperation);
   };
 
-  console.log("logicFields", logicFields);
+  if (!calculation) return null;
   return (
     <div className="grid grid-cols-1">
       {calculation.operations?.map((operation: CalculationOperation) => (
@@ -137,7 +135,9 @@ export function SimpleCalculation({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => onDelete?.(calculation.id)}
+            onClick={() => {
+              onDelete?.(calculation?.id, operation.id);
+            }}
           >
             <X className="h-4 w-4" />
           </Button>
