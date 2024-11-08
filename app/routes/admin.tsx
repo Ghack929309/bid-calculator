@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import { Pencil, Shield } from "lucide-react";
 import { AddLogic } from "~/components/add-logic";
-import { InputFieldType } from "~/lib/types";
+import {
+  InputFieldType,
+  LogicFieldType,
+  SimpleCalculationType,
+} from "~/lib/types";
 import { AddField } from "~/components/add-field";
 import { DynamicForm } from "~/components/dynamic-form";
 import { getInitialFieldState, isBrowser } from "~/lib/utils";
@@ -12,11 +16,16 @@ import { ActionFunctionArgs, json, LoaderFunctionArgs } from "@remix-run/node";
 import { db } from "~/services/database-service";
 import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
 
-enum Action {
+export enum Action {
   createSection = "createSection",
   createField = "createField",
+  createLogicField = "createLogicField",
+  updateLogicField = "updateLogicField",
   updateField = "updateField",
   deleteField = "deleteField",
+  createCalculation = "createCalculation",
+  updateCalculation = "updateCalculation",
+  deleteCalculation = "deleteCalculation",
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -36,8 +45,61 @@ export async function action({ request }: ActionFunctionArgs) {
         return json({ error: null, data: section });
       }
       case Action.createField: {
-        const { sectionId, field } = data;
-        return db.createField(field, sectionId);
+        const { field } = data;
+        return json({
+          error: null,
+          data: await db.createField(field),
+        });
+      }
+      case Action.updateField: {
+        const field = data.field as InputFieldType;
+        if (!field)
+          return json(
+            { error: "Field id is required", data: null },
+            { status: 400 }
+          );
+        const result = await db.updateField(field);
+        return json({
+          error: null,
+          data: result,
+        });
+      }
+      case Action.deleteField: {
+        return json({
+          error: null,
+          data: await db.deleteField(data.id),
+        });
+      }
+      case Action.createLogicField: {
+        return json({
+          error: null,
+          data: await db.createLogicField(data),
+        });
+      }
+      case Action.updateLogicField: {
+        return json({
+          error: null,
+          data: await db.updateLogicField(data),
+        });
+      }
+      case Action.createCalculation: {
+        console.log("create calculation", data);
+        return json({
+          error: null,
+          data: await db.createCalculation(data),
+        });
+      }
+      case Action.updateCalculation: {
+        return json({
+          error: null,
+          data: await db.updateCalculation(data),
+        });
+      }
+      case Action.deleteCalculation: {
+        return json({
+          error: null,
+          data: await db.deleteCalculation(data.id),
+        });
       }
       default:
         return json({ error: "Invalid action" }, { status: 400 });
@@ -53,57 +115,52 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
-    const searchParams = new URLSearchParams(request.url);
+    const searchParams = new URLSearchParams(new URL(request.url).search);
     const sections = await db.getSections();
     const sectionId =
-      searchParams.get("section") || sections?.[0]?.id || undefined;
-    console.log("sectionId", sectionId);
+      searchParams.get("section") || sections[0]?.id || undefined;
+
     if (!sectionId) {
       return json({
         fields: [],
         sections: [],
         logicFields: [],
         sectionId: undefined,
+        calculations: [],
       });
     }
-    const fields = await db.getFields(sectionId);
-    console.log("fields", fields);
+    const fields = await db.getFieldBySectionId(sectionId);
     const logicFields = await db.getLogicFields(sectionId);
-    return json({ fields, sections, logicFields, sectionId });
+    const calculations = await db.getCalculations();
+    return json({ fields, sections, logicFields, sectionId, calculations });
   } catch (error) {
     console.error("Failed to fetch data", error);
     return json(
-      { fields: [], sections: [], logicFields: [], sectionId: undefined },
+      {
+        fields: [],
+        sections: [],
+        logicFields: [],
+        sectionId: undefined,
+        calculations: [],
+      },
       { status: 500 }
     );
   }
 }
 
 const CalculatorAdmin = () => {
-  const { fields, sections, logicFields, sectionId } =
+  const { fields, sections, logicFields, sectionId, calculations } =
     useLoaderData<typeof loader>();
   const calcFetcher = useFetcher();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(sectionId);
 
   console.log("fields", fields);
   console.log("sections", sections);
   console.log("logicFields", logicFields);
+  console.log("calculations", calculations);
   const [saved, setSaved] = useState(false);
-  // const [fields, setFields] = useState<InputFieldType[]>(
-  //   isBrowser ? JSON.parse(localStorage?.getItem("fields") || "[]") : []
-  // );
-  // const [sections, setSections] = useState<string[]>(
-  //   isBrowser ? JSON.parse(localStorage?.getItem("sections") || "[]") : []
-  // );
-  const [activeTab, setActiveTab] = useState(sectionId);
 
-  // const [logicFields, setLogicFields] = useState<
-  //   { id: string; name: string; section: string }[]
-  // >(isBrowser ? JSON.parse(localStorage?.getItem("logicFields") || "[]") : []);
-  // const logicsBasedOnActiveTab = useMemo(
-  //   () => logicFields?.filter((f) => f.section === activeTab),
-  //   [logicFields, activeTab]
-  // );
   console.log("logicFields", logicFields);
   const handleSave = () => {
     // This would send the data to your backend
@@ -118,7 +175,8 @@ const CalculatorAdmin = () => {
 
   const handleSelectSectionTab = (sectionId: string) => {
     setActiveTab(sectionId);
-    setSearchParams({ section: sectionId });
+    searchParams.set("section", sectionId);
+    setSearchParams(searchParams);
   };
 
   const handleDeleteSection = (section: string) => {
@@ -136,34 +194,34 @@ const CalculatorAdmin = () => {
   };
 
   const handleUpdateField = (field: InputFieldType) => {
-    const isFieldExists = fields.find((f) => f.id === field.id);
-    if (isFieldExists) {
-      const updatedFields = fields.map((f) => (f.id === field.id ? field : f));
-      setFields(updatedFields);
-      localStorage?.setItem("fields", JSON.stringify(updatedFields));
-    }
+    console.log("field from handle update field", field);
+    calcFetcher.submit(
+      { action: Action.updateField, data: { field } },
+      { method: "post", encType: "application/json" }
+    );
   };
 
   const handleDeleteField = (field: InputFieldType) => {
-    const updatedFields = fields.filter((f) => f.name !== field.name);
-    setFields(updatedFields);
-    localStorage?.setItem("fields", JSON.stringify(updatedFields));
+    calcFetcher.submit(
+      { action: Action.deleteField, data: { id: field.id } },
+      { method: "post", encType: "application/json" }
+    );
   };
+
   const handleAddLogicalField = (name: string) => {
-    const id = uuidv4();
-    setLogicFields((prev) => [...prev, { id, name, section: activeTab }]);
-    localStorage?.setItem(
-      "logicFields",
-      JSON.stringify([...logicFields, { id, name, section: activeTab }])
+    calcFetcher.submit(
+      { action: Action.createLogicField, data: { name, sectionId: activeTab } },
+      { method: "post", encType: "application/json" }
     );
   };
+
   const handleUpdateLogicalField = (id: string, name: string) => {
-    const updatedLogic = logicFields.map((f) =>
-      f.id === id ? { id, name, section: activeTab } : f
+    calcFetcher.submit(
+      { action: Action.updateLogicField, data: { id, name } },
+      { method: "post", encType: "application/json" }
     );
-    setLogicFields(updatedLogic);
-    localStorage?.setItem("logicFields", JSON.stringify(updatedLogic));
   };
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       <section>
@@ -195,8 +253,8 @@ const CalculatorAdmin = () => {
         {/* Content Area */}
         <div className="bg-white rounded-lg shadow p-6">
           <DynamicForm
-            section={activeTab}
-            fields={fields}
+            sectionId={activeTab}
+            fields={fields as unknown as InputFieldType[]}
             onSubmit={() => {}}
             isEditing={true}
             handleDeleteField={handleDeleteField}
@@ -206,7 +264,7 @@ const CalculatorAdmin = () => {
           {/* Save Button */}
           <div className="mt-8 flex justify-end">
             <AddField
-              section={activeTab}
+              sectionId={activeTab}
               initialField={getInitialFieldState({ type: "number" })}
               handleAddField={handleAddField}
             />
@@ -227,7 +285,7 @@ const CalculatorAdmin = () => {
           <p className="text-gray-600 mt-2">Manage logic for each field</p>
         </div>
         <div>
-          {[]?.map((logic) => (
+          {logicFields?.map((logic) => (
             <div key={logic.id} className="flex items-center justify-between">
               <p>{logic.name}</p>
               <div className="flex items-center space-x-2">
@@ -240,7 +298,16 @@ const CalculatorAdmin = () => {
                   handleAddField={handleAddLogicalField}
                   handleUpdateField={handleUpdateLogicalField}
                 />
-                <AddLogic logicId={logic.id} fields={fields} />
+                <AddLogic
+                  logicId={logic.id}
+                  fields={fields as InputFieldType[]}
+                  logicalField={logicFields as LogicFieldType[]}
+                  initialCalculations={
+                    calculations.filter(
+                      (cal) => cal.logicId === logic.id
+                    ) as SimpleCalculationType[]
+                  }
+                />
               </div>
             </div>
           ))}

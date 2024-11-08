@@ -10,35 +10,37 @@ import {
 } from "~/components/ui/card";
 import {
   CalculationOperation,
-  ConditionalCalculationType,
   InputFieldType,
+  LogicFieldType,
   SimpleCalculationType,
 } from "~/lib/types";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import { calculationService } from "~/services/calculation-service";
 import { SimpleCalculation } from "./simple-calculation";
-import { ConditionalCalculation } from "./condition-calculation";
 import { defaultSimpleOperations } from "~/lib/constant";
-import { isBrowser } from "~/lib/utils";
+import { useFetcher } from "@remix-run/react";
+import { Action } from "~/routes/admin";
 
 export function AddLogic({
   fields,
   logicId,
+  logicalField,
+  initialCalculations,
 }: {
   fields: InputFieldType[];
   logicId: string;
+  logicalField: LogicFieldType[];
+  initialCalculations: SimpleCalculationType[];
 }) {
+  console.log("fields in add logic", fields);
+  const calcFetcher = useFetcher();
   const [openModal, setOpenModal] = useState(false);
-  const [calculations, setCalculations] = useState<
-    (SimpleCalculationType | ConditionalCalculationType)[]
-  >(isBrowser ? JSON.parse(localStorage.getItem("calculations") || "[]") : []);
-  const selectedCalculationLogic = calculations.find(
-    (calc) => calc.logicId === logicId
-  );
-  const addCalculation = (type = "simple") => {
+  const [calculations, setCalculations] =
+    useState<SimpleCalculationType[]>(initialCalculations);
+
+  const addCalculation = () => {
     const newCalculation = calculationService.addCalculation({
       calculations: calculations as SimpleCalculationType[],
-      type: "simple",
       logicId,
     });
     console.log("newCalculation", newCalculation);
@@ -86,9 +88,10 @@ export function AddLogic({
   };
 
   const saveCalculations = () => {
-    if (isBrowser) {
-      localStorage.setItem("calculations", JSON.stringify(calculations));
-    }
+    calcFetcher.submit(
+      { action: Action.createCalculation, data: calculations[0] },
+      { method: "post", encType: "application/json" }
+    );
     setOpenModal(false);
   };
 
@@ -106,8 +109,6 @@ export function AddLogic({
       })
     );
   };
-
-  console.log("calculations", calculations);
 
   return (
     <Dialog open={openModal} onOpenChange={(open) => setOpenModal(open)}>
@@ -127,27 +128,23 @@ export function AddLogic({
             <div className="space-y-4">
               <SimpleCalculation
                 defaultData={defaultSimpleOperations as CalculationOperation}
-                calculation={selectedCalculationLogic as SimpleCalculationType}
+                calculation={calculations[0]}
                 fields={fields}
+                logicFields={logicalField}
                 updateOperation={updateOperation}
                 onDelete={removeCalculation}
               />
             </div>
 
             <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  addCalculation("simple");
-                }}
-              >
+              <Button variant="outline" onClick={addCalculation}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Simple Calculation
               </Button>
               <Button
                 className="mr-auto"
                 variant="outline"
-                onClick={() => addCalculation("conditional")}
+                onClick={addCalculation}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Conditional Calculation

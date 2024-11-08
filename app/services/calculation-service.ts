@@ -9,7 +9,6 @@ import {
   OperatorType,
   SimpleCalculationType,
 } from "~/lib/types";
-import { db } from "./database-service";
 
 type ValidationError = {
   message: string;
@@ -89,15 +88,16 @@ class CalculationService {
   //   };
   // }
 
-  async addCalculation({
+  addCalculation({
     calculations,
     logicId,
   }: {
     calculations: SimpleCalculationType[];
-    type?: CalculationType;
     logicId: string;
   }) {
-    const existingCalculation = calculations.find((c) => c.logicId === logicId);
+    const existingCalculation = calculations?.find(
+      (c) => c.logicId === logicId
+    );
 
     if (
       !existingCalculation ||

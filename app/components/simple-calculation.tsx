@@ -15,6 +15,7 @@ import {
   CalculationOperation,
   CalculationFieldType,
   OperatorType,
+  LogicFieldType,
 } from "~/lib/types";
 import { isBrowser } from "~/lib/utils";
 import { CalculationValueSelector } from "~/components/calculation-value-selector";
@@ -22,6 +23,7 @@ import { CalculationValueSelector } from "~/components/calculation-value-selecto
 interface SimpleCalculationProps {
   calculation?: SimpleCalculationType;
   fields: InputFieldType[];
+  logicFields: LogicFieldType[];
   defaultData: CalculationOperation;
   onDelete: (calculationId: string, operationId: string) => void;
   updateOperation: (
@@ -33,14 +35,11 @@ interface SimpleCalculationProps {
 export function SimpleCalculation({
   calculation,
   fields,
+  logicFields,
   onDelete,
   updateOperation,
   defaultData,
 }: SimpleCalculationProps) {
-  const logicFields = isBrowser
-    ? JSON.parse(localStorage?.getItem("logicFields") || "[]")
-    : [];
-
   const [defaultOperations, setDefaultOperations] =
     useState<CalculationOperation>(defaultData);
 

@@ -24,11 +24,10 @@ import type { InputFieldType } from "~/lib/types";
 import { Pencil, Trash2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { AddField } from "./add-field";
-import { useState } from "react";
 
 interface DynamicFormProps {
   fields: InputFieldType[];
-  section: string;
+  sectionId: string;
   onSubmit: (data: any) => void;
   isEditing?: boolean;
   handleUpdateField?: (field: InputFieldType) => void;
@@ -36,15 +35,13 @@ interface DynamicFormProps {
 }
 
 export function DynamicForm({
-  section,
+  sectionId,
   fields,
   onSubmit,
   isEditing = false,
   handleDeleteField,
   handleUpdateField,
 }: DynamicFormProps) {
-  console.log("section from dynamic form", fields);
-
   const formSchema = z.object(
     fields.reduce((acc, field) => {
       let validator = z.string();
@@ -74,7 +71,6 @@ export function DynamicForm({
     ),
   });
 
-  console.log("fields from dynamic form", fields);
   return (
     <Card>
       <CardHeader>
@@ -170,11 +166,13 @@ const RenderField = ({ field, form }: { field: InputFieldType; form: any }) => {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {(field as any).options?.map((option: string) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
+                  {(field as any).options?.map(
+                    (option: { value: string; id: string }) => (
+                      <SelectItem key={option.id} value={option.value}>
+                        {option.value}
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -193,12 +191,12 @@ const RenderField = ({ field, form }: { field: InputFieldType; form: any }) => {
             <div className="flex flex-col gap-4">
               <FormLabel className="capitalize">{field.name}</FormLabel>
               <div className="flex items-center flex-wrap gap-2">
-                {field.options?.map((option: string) => (
-                  <FormItem key={option} className="flex items-end gap-2">
+                {field.options?.map((option: { value: string; id: string }) => (
+                  <FormItem key={option.id} className="flex items-end gap-2">
                     <FormControl>
-                      <Checkbox checked={formField.value === option} />
+                      <Checkbox checked={formField.value === option.value} />
                     </FormControl>
-                    <FormLabel className="capitalize">{option}</FormLabel>
+                    <FormLabel className="capitalize">{option.value}</FormLabel>
                     <FormMessage />
                   </FormItem>
                 ))}

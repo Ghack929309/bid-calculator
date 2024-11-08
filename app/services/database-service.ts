@@ -5,6 +5,7 @@ import {
   CalculationValue,
   InputFieldType,
   LogicFieldType,
+  OptionsField,
 } from "~/lib/types";
 
 class DatabaseService {
@@ -28,14 +29,11 @@ class DatabaseService {
   }
 
   // Field Methods
-  async createField(field: InputFieldType, sectionId: string) {
+  async createField(field: InputFieldType) {
     const { options, ...fieldData } = field;
     return this.prisma.field.create({
       data: {
         ...fieldData,
-        section: {
-          connect: { id: sectionId },
-        },
         options: {
           create: options?.map((opt: string) => ({ value: opt })) || [],
         },
@@ -53,30 +51,45 @@ class DatabaseService {
   }
 
   async updateField(field: InputFieldType) {
-    const { options, section, ...fieldData } = field;
+    const { options, ...fieldData } = field;
     return this.prisma.field.update({
       where: { id: field.id },
       data: {
         ...fieldData,
-        section: {
-          connect: { id: section },
-        },
         options: {
-          create: options?.map((opt: string) => ({ value: opt })) || [],
+          deleteMany: {},
+          create:
+            (options as OptionsField["options"])?.map((opt) => ({
+              value: opt.value,
+            })) || [],
         },
-      },
-    });
-  }
-
-  async getFields(sectionId?: string) {
-    if (!sectionId) return null;
-    return this.prisma.field.findMany({
-      where: {
-        sectionId,
       },
       include: {
         options: true,
       },
+    });
+  }
+
+  async getFields() {
+    return this.prisma.field.findMany({
+      include: {
+        options: true,
+      },
+    });
+  }
+
+  async getFieldBySectionId(sectionId: string) {
+    return this.prisma.field.findMany({
+      where: { sectionId },
+      include: {
+        options: true,
+      },
+    });
+  }
+
+  async deleteField(id: string) {
+    return this.prisma.field.delete({
+      where: { id },
     });
   }
 
@@ -85,9 +98,6 @@ class DatabaseService {
     return this.prisma.logicField.create({
       data: {
         ...field,
-        section: {
-          connect: { id: field.section },
-        },
       },
     });
   }
@@ -97,9 +107,6 @@ class DatabaseService {
       where: { id: field.id },
       data: {
         ...field,
-        section: {
-          connect: { id: field.section },
-        },
       },
     });
   }
@@ -152,6 +159,12 @@ class DatabaseService {
     return this.prisma.calculation.update({
       where: { id: calculation.id },
       data: this.mapCalculation(calculation),
+    });
+  }
+
+  async deleteCalculation(id: string) {
+    return this.prisma.calculation.delete({
+      where: { id },
     });
   }
 

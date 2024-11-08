@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
-import { FieldType, InputFieldType } from "~/lib/types";
+import { FieldType, InputFieldType, OptionsField } from "~/lib/types";
 import { getInitialFieldState } from "~/lib/utils";
 import { v4 as uuidv4 } from "uuid";
 
@@ -22,7 +22,6 @@ function FieldForm({
   field: InputFieldType;
   onFieldChange: (field: InputFieldType) => void;
 }) {
-  console.log("field from field form", field);
   return (
     <div className="space-y-4">
       <FieldNameInput
@@ -104,22 +103,22 @@ function OptionsManager({
   options,
   onChange,
 }: {
-  options: string[];
-  onChange: (options: string[]) => void;
+  options: OptionsField["options"];
+  onChange: (options: OptionsField["options"]) => void;
 }) {
   const [newOption, setNewOption] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const addOption = () => {
     if (newOption.trim()) {
-      onChange([...options, newOption.trim()]);
+      onChange([...options, { value: newOption.trim(), id: "", fieldId: "" }]);
       setNewOption("");
     }
   };
 
   const updateOption = (index: number, value: string) => {
     const newOptions = [...options];
-    newOptions[index] = value;
+    newOptions[index] = { value, id: "", fieldId: "" };
     onChange(newOptions);
     setEditingIndex(null);
   };
@@ -165,7 +164,7 @@ function OptionItem({
   onRemove,
   onCancel,
 }: {
-  option: string;
+  option: OptionsField["options"][number];
   isEditing: boolean;
   onEdit: () => void;
   onUpdate: (value: string) => void;
@@ -182,13 +181,15 @@ function OptionItem({
             type="text"
             className="flex-1 p-1 border rounded"
             autoFocus
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onUpdate(editValue)}
+            value={editValue.value}
+            onChange={(e) =>
+              setEditValue({ ...editValue, value: e.target.value })
+            }
+            onKeyDown={(e) => e.key === "Enter" && onUpdate(editValue.value)}
           />
           <div className="flex items-center gap-1">
             <Check
-              onClick={() => onUpdate(editValue)}
+              onClick={() => onUpdate(editValue.value)}
               className="w-4 h-4 text-green-500 cursor-pointer"
             />
             <X
@@ -199,7 +200,7 @@ function OptionItem({
         </div>
       ) : (
         <>
-          <span className="flex-1">{option}</span>
+          <span className="flex-1">{option.value}</span>
           <div className="flex items-center gap-2">
             <Pencil
               onClick={onEdit}
@@ -245,20 +246,20 @@ export function AddField({
   trigger,
   initialField,
   isEditing = false,
-  section,
+  sectionId,
 }: {
   handleAddField?: (field: InputFieldType) => void;
   handleUpdateField?: (field: InputFieldType) => void;
   trigger?: React.ReactNode;
   initialField: InputFieldType;
   isEditing?: boolean;
-  section: string;
+  sectionId: string;
 }) {
   const [field, setField] = useState<InputFieldType>(initialField);
 
   const handleSave = () => {
     if (field.name.trim()) {
-      handleAddField?.({ ...field, id: uuidv4(), section });
+      handleAddField?.({ ...field, id: uuidv4(), sectionId });
       setField(getInitialFieldState({ type: field.type }));
     }
   };
@@ -275,7 +276,7 @@ export function AddField({
     <Dialog>
       <DialogTrigger asChild>
         {trigger || (
-          <Button disabled={!section} variant="default">
+          <Button disabled={!sectionId} variant="default">
             Add Field
           </Button>
         )}

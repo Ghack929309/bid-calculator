@@ -8,7 +8,7 @@ export enum CalculationType {
 
 interface BaseField {
   id: string;
-  section: string;
+  sectionId: string;
   name: string;
   type: FieldType;
   required: boolean;
@@ -21,12 +21,16 @@ export interface SimpleField extends BaseField {
 
 export interface OptionsField extends BaseField {
   type: "select" | "checkbox";
-  options: string[];
+  options: {
+    value: string;
+    id: string;
+    fieldId: string;
+  }[];
 }
 
 export type LogicFieldType = {
   id: string;
-  section: string;
+  sectionId: string;
   name: string;
 };
 
