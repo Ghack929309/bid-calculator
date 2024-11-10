@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Archive, Globe, Pencil, Trash, Trash2 } from "lucide-react";
+import { Archive, GitBranchPlus, Globe, Pencil, Trash2 } from "lucide-react";
 import { AddLogic } from "~/components/add-logic";
 import {
   InputFieldType,
@@ -316,29 +316,26 @@ const CalculatorAdmin = () => {
               sectionId={activeTab}
               initialField={getInitialFieldState({ type: "number" })}
               handleAddField={handleAddField}
+              trigger={
+                <GitBranchPlus className="w-4 h-4 cursor-pointer text-orange-500 hover:text-orange-700" />
+              }
             />
 
-            <button
-              onClick={handleToggleSectionVisibility}
-              className={cx(
-                "px-6 py-2  text-white rounded-lg  flex items-center space-x-2",
-                {
-                  "bg-gray-950 text-white": isPublished,
-                  "bg-blue-600 hover:bg-blue-700": !isPublished,
-                }
-              )}
-            >
-              {isPublished ? (
-                <Archive className="w-4 h-4" />
-              ) : (
-                <Globe className="w-4 h-4" />
-              )}
-
-              <span>{isPublished ? "Archive" : "Publish"}</span>
-            </button>
-            <Button onClick={handleDeleteSection} variant="destructive">
-              Remove
-            </Button>
+            {isPublished ? (
+              <Archive
+                onClick={handleToggleSectionVisibility}
+                className="w-4 h-4 cursor-pointer text-gray-600 hover:text-gray-700"
+              />
+            ) : (
+              <Globe
+                onClick={handleToggleSectionVisibility}
+                className="w-4 h-4 cursor-pointer text-green-600 hover:text-green-700"
+              />
+            )}
+            <Trash2
+              onClick={handleDeleteSection}
+              className="w-4 h-4 cursor-pointer text-red-600 hover:text-red-700"
+            />
           </div>
         </div>
       </section>
