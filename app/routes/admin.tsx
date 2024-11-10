@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Shield } from "lucide-react";
+import { Archive, Globe, Pencil, Trash, Trash2 } from "lucide-react";
 import { AddLogic } from "~/components/add-logic";
 import {
   InputFieldType,
@@ -8,19 +8,23 @@ import {
 } from "~/lib/types";
 import { AddField } from "~/components/add-field";
 import { DynamicForm } from "~/components/dynamic-form";
-import { getInitialFieldState, isBrowser } from "~/lib/utils";
+import { getInitialFieldState } from "~/lib/utils";
 import { AddSection } from "~/components/add-section";
-import { v4 as uuidv4 } from "uuid";
 import { CreateField } from "~/components/create-field";
 import { ActionFunctionArgs, json, LoaderFunctionArgs } from "@remix-run/node";
 import { db } from "~/services/database-service";
 import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
+import { cx } from "class-variance-authority";
+import { Button } from "~/components/ui/button";
 
 export enum Action {
   createSection = "createSection",
+  deleteSection = "deleteSection",
   createField = "createField",
   createLogicField = "createLogicField",
   updateLogicField = "updateLogicField",
+  deleteLogicField = "deleteLogicField",
+  toggleSectionVisibility = "toggleSectionVisibility",
   updateField = "updateField",
   deleteField = "deleteField",
   createAndUpdateCalculation = "createAndUpdateCalculation",
@@ -32,6 +36,27 @@ export async function action({ request }: ActionFunctionArgs) {
     const body = await request.json();
     const { action, data } = body;
     switch (action) {
+      case Action.toggleSectionVisibility: {
+        return json({
+          error: null,
+          data: await db.toggleSectionVisibility({
+            sectionId: data.sectionId,
+            isPublished: data.isPublished,
+          }),
+        });
+      }
+      case Action.deleteSection: {
+        return json({
+          error: null,
+          data: await db.deleteSection(data.sectionId),
+        });
+      }
+      case Action.deleteLogicField: {
+        return json({
+          error: null,
+          data: await db.deleteLogicField(data.id),
+        });
+      }
       case Action.createSection: {
         const sections = await db.getSections();
         if (sections.includes(data.name)) {
@@ -119,8 +144,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   try {
     const searchParams = new URLSearchParams(new URL(request.url).search);
     const sections = await db.getSections();
-    const sectionId =
-      searchParams.get("section") || sections[0]?.id || undefined;
+    const sectionId = searchParams.get("section") || sections[0]?.id;
 
     if (!sectionId) {
       return json({
@@ -156,12 +180,8 @@ const CalculatorAdmin = () => {
   const calcFetcher = useFetcher();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(sectionId);
-
-  const [saved, setSaved] = useState(false);
-
-  const handleSave = () => {
-    // This would send the data to your backend
-  };
+  const selectedSection = sections?.find((s) => s?.id === activeTab);
+  const isPublished = selectedSection?.isPublished;
 
   const handleAddSection = (section: string) => {
     calcFetcher.submit(
@@ -174,12 +194,6 @@ const CalculatorAdmin = () => {
     setActiveTab(sectionId);
     searchParams.set("section", sectionId);
     setSearchParams(searchParams);
-  };
-
-  const handleDeleteSection = (section: string) => {
-    const updatedSections = sections.filter((s) => s?.id !== section);
-    setSections(updatedSections);
-    localStorage?.setItem("sections", JSON.stringify(updatedSections));
   };
 
   const handleAddField = (field: InputFieldType) => {
@@ -225,6 +239,38 @@ const CalculatorAdmin = () => {
     );
   };
 
+  const handleToggleSectionVisibility = () => {
+    if (!selectedSection) return;
+    calcFetcher.submit(
+      {
+        action: Action.toggleSectionVisibility,
+        data: { sectionId, isPublished: selectedSection.isPublished },
+      },
+      { method: "post", encType: "application/json" }
+    );
+  };
+
+  const handleDeleteSection = () => {
+    console.log("delete section", sectionId);
+    calcFetcher.submit(
+      {
+        action: Action.deleteSection,
+        data: { sectionId },
+      },
+      {
+        method: "post",
+        encType: "application/json",
+      }
+    );
+  };
+
+  const handleDeleteLogicField = (id: string) => {
+    calcFetcher.submit(
+      { action: Action.deleteLogicField, data: { id } },
+      { method: "post", encType: "application/json" }
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       <section>
@@ -265,7 +311,7 @@ const CalculatorAdmin = () => {
           />
 
           {/* Save Button */}
-          <div className="mt-8 flex justify-end">
+          <div className="mt-8 flex gap-x-3 items-end justify-end">
             <AddField
               sectionId={activeTab}
               initialField={getInitialFieldState({ type: "number" })}
@@ -273,12 +319,26 @@ const CalculatorAdmin = () => {
             />
 
             <button
-              onClick={handleSave}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+              onClick={handleToggleSectionVisibility}
+              className={cx(
+                "px-6 py-2  text-white rounded-lg  flex items-center space-x-2",
+                {
+                  "bg-gray-950 text-white": isPublished,
+                  "bg-blue-600 hover:bg-blue-700": !isPublished,
+                }
+              )}
             >
-              <Shield size={20} />
-              <span>{saved ? "Saved!" : "Save Changes"}</span>
+              {isPublished ? (
+                <Archive className="w-4 h-4" />
+              ) : (
+                <Globe className="w-4 h-4" />
+              )}
+
+              <span>{isPublished ? "Archive" : "Publish"}</span>
             </button>
+            <Button onClick={handleDeleteSection} variant="destructive">
+              Remove
+            </Button>
           </div>
         </div>
       </section>
@@ -287,8 +347,8 @@ const CalculatorAdmin = () => {
           <h1 className="text-3xl font-bold">Calculator Logics</h1>
           <p className="text-gray-600 mt-2">Manage logic for each field</p>
         </div>
-        <div>
-          {logicFields?.map((logic) => (
+        <div className="flex flex-col gap-y-2">
+          {logicFields?.map((logic: any) => (
             <div key={logic.id} className="flex items-center justify-between">
               <p>{logic.name}</p>
               <div className="flex items-center space-x-2">
@@ -310,6 +370,10 @@ const CalculatorAdmin = () => {
                       (cal) => cal.logicId === logic.id
                     ) as SimpleCalculationType[]
                   }
+                />
+                <Trash2
+                  onClick={() => handleDeleteLogicField(logic.id)}
+                  className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-700"
                 />
               </div>
             </div>

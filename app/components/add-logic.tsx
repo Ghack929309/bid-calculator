@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { GitBranchPlus, Plus } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -83,7 +83,7 @@ export function AddLogic({
   return (
     <Dialog open={openModal} onOpenChange={(open) => setOpenModal(open)}>
       <DialogTrigger asChild>
-        <Button variant="default">Add Logic</Button>
+        <GitBranchPlus className="w-4 h-4 cursor-pointer text-orange-500 hover:text-orange-700" />
       </DialogTrigger>
       <DialogContent className="max-w-4xl">
         <Card>
@@ -110,14 +110,14 @@ export function AddLogic({
                 <Plus className="h-4 w-4 mr-2" />
                 Add Simple Calculation
               </Button>
-              <Button
+              {/* <Button
                 className="mr-auto"
                 variant="outline"
                 onClick={addCalculation}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Conditional Calculation
-              </Button>
+              </Button> */}
             </div>
             <Button onClick={saveCalculations} variant="default">
               Save

@@ -27,6 +27,18 @@ class DatabaseService {
     return DatabaseService.instance;
   }
 
+  async toggleSectionVisibility({
+    sectionId,
+    isPublished,
+  }: {
+    sectionId: string;
+    isPublished: boolean;
+  }) {
+    return this.prisma.section.update({
+      where: { id: sectionId },
+      data: { isPublished: !isPublished },
+    });
+  }
   // Field Methods
   async createField(field: InputFieldType) {
     const { options, ...fieldData } = field;
@@ -41,6 +53,11 @@ class DatabaseService {
   async createSection(section: string) {
     return this.prisma.section.create({
       data: { name: section },
+    });
+  }
+  async deleteSection(sectionId: string) {
+    return this.prisma.section.delete({
+      where: { id: sectionId },
     });
   }
 
@@ -164,6 +181,18 @@ class DatabaseService {
 
   async getSections() {
     return this.prisma.section.findMany({});
+  }
+
+  async getSectionById(sectionId: string) {
+    return this.prisma.section.findFirst({
+      where: { id: sectionId },
+    });
+  }
+
+  async deleteLogicField(id: string) {
+    return this.prisma.logicField.delete({
+      where: { id },
+    });
   }
 
   // Helper methods
