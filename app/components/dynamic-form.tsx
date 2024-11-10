@@ -101,6 +101,7 @@ export function DynamicForm({
                         handleUpdateField?.(updatedField)
                       }
                       initialField={field}
+                      sectionId={sectionId}
                     />
 
                     <Trash2
@@ -166,7 +167,7 @@ const RenderField = ({ field, form }: { field: InputFieldType; form: any }) => {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {(field as any).options?.map(
+                  {field.options?.map(
                     (option: { value: string; id: string }) => (
                       <SelectItem key={option.id} value={option.value}>
                         {option.value}

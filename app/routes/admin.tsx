@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Pencil, Shield } from "lucide-react";
 import { AddLogic } from "~/components/add-logic";
 import {
@@ -23,8 +23,7 @@ export enum Action {
   updateLogicField = "updateLogicField",
   updateField = "updateField",
   deleteField = "deleteField",
-  createCalculation = "createCalculation",
-  updateCalculation = "updateCalculation",
+  createAndUpdateCalculation = "createAndUpdateCalculation",
   deleteCalculation = "deleteCalculation",
 }
 
@@ -52,7 +51,8 @@ export async function action({ request }: ActionFunctionArgs) {
         });
       }
       case Action.updateField: {
-        const field = data.field as InputFieldType;
+        const field = data as InputFieldType;
+        console.log("update field in update field", field);
         if (!field)
           return json(
             { error: "Field id is required", data: null },
@@ -82,17 +82,19 @@ export async function action({ request }: ActionFunctionArgs) {
           data: await db.updateLogicField(data),
         });
       }
-      case Action.createCalculation: {
+      case Action.createAndUpdateCalculation: {
         console.log("create calculation", data);
+        const isExist = await db.getCalculationByLogicId(data.logicId);
+        console.log("isExist", isExist);
+        if (isExist?.id) {
+          return json({
+            error: null,
+            data: await db.updateCalculation(data),
+          });
+        }
         return json({
           error: null,
           data: await db.createCalculation(data),
-        });
-      }
-      case Action.updateCalculation: {
-        return json({
-          error: null,
-          data: await db.updateCalculation(data),
         });
       }
       case Action.deleteCalculation: {
@@ -155,13 +157,8 @@ const CalculatorAdmin = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(sectionId);
 
-  console.log("fields", fields);
-  console.log("sections", sections);
-  console.log("logicFields", logicFields);
-  console.log("calculations", calculations);
   const [saved, setSaved] = useState(false);
 
-  console.log("logicFields", logicFields);
   const handleSave = () => {
     // This would send the data to your backend
   };
@@ -180,7 +177,7 @@ const CalculatorAdmin = () => {
   };
 
   const handleDeleteSection = (section: string) => {
-    const updatedSections = sections.filter((s) => s !== section);
+    const updatedSections = sections.filter((s) => s?.id !== section);
     setSections(updatedSections);
     localStorage?.setItem("sections", JSON.stringify(updatedSections));
   };
@@ -188,7 +185,13 @@ const CalculatorAdmin = () => {
   const handleAddField = (field: InputFieldType) => {
     if (!activeTab) return;
     calcFetcher.submit(
-      { action: Action.createField, data: { field, sectionId: activeTab } },
+      {
+        action: Action.createField,
+        data: {
+          field,
+          sectionId: activeTab,
+        },
+      },
       { method: "post", encType: "application/json" }
     );
   };
@@ -196,7 +199,7 @@ const CalculatorAdmin = () => {
   const handleUpdateField = (field: InputFieldType) => {
     console.log("field from handle update field", field);
     calcFetcher.submit(
-      { action: Action.updateField, data: { field } },
+      { action: Action.updateField, data: field },
       { method: "post", encType: "application/json" }
     );
   };
@@ -253,10 +256,10 @@ const CalculatorAdmin = () => {
         {/* Content Area */}
         <div className="bg-white rounded-lg shadow p-6">
           <DynamicForm
-            sectionId={activeTab}
             fields={fields as unknown as InputFieldType[]}
             onSubmit={() => {}}
             isEditing={true}
+            sectionId={activeTab}
             handleDeleteField={handleDeleteField}
             handleUpdateField={handleUpdateField}
           />

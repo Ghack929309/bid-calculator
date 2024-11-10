@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -17,7 +17,6 @@ import {
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import { calculationService } from "~/services/calculation-service";
 import { SimpleCalculation } from "./simple-calculation";
-import { defaultSimpleOperations } from "~/lib/constant";
 import { useFetcher } from "@remix-run/react";
 import { Action } from "~/routes/admin";
 
@@ -32,11 +31,14 @@ export function AddLogic({
   logicalField: LogicFieldType[];
   initialCalculations: SimpleCalculationType[];
 }) {
-  console.log("fields in add logic", fields);
   const calcFetcher = useFetcher();
   const [openModal, setOpenModal] = useState(false);
   const [calculations, setCalculations] =
     useState<SimpleCalculationType[]>(initialCalculations);
+
+  const selectedCalculation = useMemo(() => {
+    return calculations?.find((cal) => cal.logicId === logicId);
+  }, [calculations, logicId]);
 
   const addCalculation = () => {
     const newCalculation = calculationService.addCalculation({
@@ -45,23 +47,6 @@ export function AddLogic({
     });
     console.log("newCalculation", newCalculation);
     setCalculations(newCalculation);
-  };
-
-  const addCondition = (calculationId: string) => {
-    setCalculations((prev) =>
-      calculationService.addCondition({ calculations: prev, calculationId })
-    );
-  };
-
-  const updateCalculation = (id: string, updates: any) => {
-    const updatedCalculation = calculationService.updateCalculation({
-      calculations,
-      id,
-      updates,
-    });
-    console.log("updatedCalculation", updatedCalculation);
-
-    setCalculations(updatedCalculation as SimpleCalculationType[]);
   };
 
   const removeCalculation = (calculationId: string, operationId: string) => {
@@ -74,13 +59,12 @@ export function AddLogic({
     );
   };
 
-  const updateOperation = (
-    logicId: string,
-    operation: CalculationOperation
-  ) => {
+  const updateOperation = (operation: CalculationOperation) => {
+    console.log("operation", operation);
+    if (!selectedCalculation) return;
     const update = calculationService.updateCalculationOperations({
       calculations: calculations as SimpleCalculationType[],
-      calculationLogicId: logicId,
+      calculationId: selectedCalculation?.id,
       operation,
     });
     console.log("update", update);
@@ -88,26 +72,12 @@ export function AddLogic({
   };
 
   const saveCalculations = () => {
+    if (!selectedCalculation) return;
     calcFetcher.submit(
-      { action: Action.createCalculation, data: calculations[0] },
+      { action: Action.createAndUpdateCalculation, data: selectedCalculation },
       { method: "post", encType: "application/json" }
     );
     setOpenModal(false);
-  };
-
-  const updateCondition = (
-    calculationId: string,
-    conditionId: string,
-    updates: any
-  ) => {
-    setCalculations((prev) =>
-      calculationService.updateCondition({
-        calculations: prev,
-        calculationId,
-        conditionId,
-        updates,
-      })
-    );
   };
 
   return (
@@ -127,8 +97,7 @@ export function AddLogic({
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <SimpleCalculation
-                defaultData={defaultSimpleOperations as CalculationOperation}
-                calculation={calculations[0]}
+                calculation={selectedCalculation}
                 fields={fields}
                 logicFields={logicalField}
                 updateOperation={updateOperation}

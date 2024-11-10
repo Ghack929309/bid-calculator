@@ -95,6 +95,7 @@ class CalculationService {
     calculations: SimpleCalculationType[];
     logicId: string;
   }) {
+    console.log("calculations", calculations);
     const existingCalculation = calculations?.find(
       (c) => c.logicId === logicId
     );
@@ -151,15 +152,15 @@ class CalculationService {
 
   updateCalculationOperations({
     calculations,
-    calculationLogicId,
+    calculationId,
     operation,
   }: {
     calculations: SimpleCalculationType[];
-    calculationLogicId: string;
+    calculationId: string;
     operation: CalculationOperation;
   }) {
     return calculations.map((calc) => {
-      if (calc.logicId === calculationLogicId) {
+      if (calc.id === calculationId) {
         return {
           ...calc,
           operations: calc.operations.map((op) =>

@@ -5,7 +5,6 @@ import {
   CalculationValue,
   InputFieldType,
   LogicFieldType,
-  OptionsField,
 } from "~/lib/types";
 
 class DatabaseService {
@@ -34,12 +33,7 @@ class DatabaseService {
     return this.prisma.field.create({
       data: {
         ...fieldData,
-        options: {
-          create: options?.map((opt: string) => ({ value: opt })) || [],
-        },
-      },
-      include: {
-        options: true,
+        options: options ? JSON.stringify(options) : undefined,
       },
     });
   }
@@ -56,35 +50,27 @@ class DatabaseService {
       where: { id: field.id },
       data: {
         ...fieldData,
-        options: {
-          deleteMany: {},
-          create:
-            (options as OptionsField["options"])?.map((opt) => ({
-              value: opt.value,
-            })) || [],
-        },
-      },
-      include: {
-        options: true,
+        options: options ? JSON.stringify(options) : undefined,
       },
     });
   }
 
   async getFields() {
-    return this.prisma.field.findMany({
-      include: {
-        options: true,
-      },
-    });
+    const fields = await this.prisma.field.findMany({});
+    return fields.map((field) => ({
+      ...field,
+      options: field.options ? JSON.parse(field.options) : [],
+    }));
   }
 
   async getFieldBySectionId(sectionId: string) {
-    return this.prisma.field.findMany({
+    const fields = await this.prisma.field.findMany({
       where: { sectionId },
-      include: {
-        options: true,
-      },
     });
+    return fields.map((field) => ({
+      ...field,
+      options: field.options ? JSON.parse(field.options) : [],
+    }));
   }
 
   async deleteField(id: string) {
@@ -126,33 +112,27 @@ class DatabaseService {
       data: {
         type: calculation.type,
         logicId: calculation.logicId,
-        operations: {
-          create: calculation.operations.map((op) => this.mapOperation(op)),
-        },
-      },
-      include: {
-        operations: {
-          include: {
-            value1: true,
-            value2: true,
-          },
-        },
+        operations: JSON.stringify(
+          calculation.operations.map((op) => this.mapOperation(op))
+        ),
       },
     });
   }
 
   async getCalculationByLogicId(logicId: string) {
-    return this.prisma.calculation.findFirst({
+    const calculation = await this.prisma.calculation.findFirst({
       where: { logicId },
-      include: {
-        operations: {
-          include: {
-            value1: true,
-            value2: true,
-          },
-        },
-      },
     });
+    return {
+      ...calculation,
+      operations: JSON.parse(calculation?.operations || "[]").map((op: any) => {
+        return {
+          ...op,
+          value1: op.value1,
+          value2: op?.value2,
+        };
+      }),
+    };
   }
 
   async updateCalculation(calculation: SimpleCalculationType) {
@@ -169,16 +149,17 @@ class DatabaseService {
   }
 
   async getCalculations() {
-    return this.prisma.calculation.findMany({
-      include: {
-        operations: {
-          include: {
-            value1: true,
-            value2: true,
-          },
-        },
-      },
-    });
+    const calculations = await this.prisma.calculation.findMany({});
+    return calculations.map((calc) => ({
+      ...calc,
+      operations: JSON.parse(calc?.operations || "[]").map((op: any) => {
+        return {
+          ...op,
+          value1: op.value1,
+          value2: op?.value2,
+        };
+      }),
+    }));
   }
 
   async getSections() {
@@ -188,15 +169,10 @@ class DatabaseService {
   // Helper methods
   private mapOperation(operation: CalculationOperation) {
     return {
+      id: operation.id,
       operator: operation.operator,
-      value1: {
-        create: this.mapCalculationValue(operation.value1),
-      },
-      value2: operation.value2
-        ? {
-            create: this.mapCalculationValue(operation.value2),
-          }
-        : undefined,
+      value1: operation.value1,
+      value2: operation.value2,
     };
   }
 
@@ -213,9 +189,9 @@ class DatabaseService {
     return {
       type: calculation.type,
       logicId: calculation.logicId,
-      operations: {
-        create: calculation.operations.map((op) => this.mapOperation(op)),
-      },
+      operations: JSON.stringify(
+        calculation.operations.map((op) => this.mapOperation(op))
+      ),
     };
   }
 }

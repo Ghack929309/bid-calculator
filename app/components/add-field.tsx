@@ -111,7 +111,10 @@ function OptionsManager({
 
   const addOption = () => {
     if (newOption.trim()) {
-      onChange([...options, { value: newOption.trim(), id: "", fieldId: "" }]);
+      onChange([
+        ...options,
+        { value: newOption.trim(), id: uuidv4(), fieldId: "" },
+      ]);
       setNewOption("");
     }
   };
@@ -124,13 +127,14 @@ function OptionsManager({
   };
 
   const removeOption = (index: number) => {
-    onChange(options.filter((_, i) => i !== index));
+    const newOptions = options?.filter((_, i) => i !== index);
+    onChange(newOptions);
   };
 
   return (
     <div className="space-y-2">
       <div className="max-h-[150px] overflow-y-auto">
-        {options.map((option, index) => (
+        {options?.map((option, index) => (
           <OptionItem
             key={index}
             option={option}

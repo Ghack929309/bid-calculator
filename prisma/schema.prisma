@@ -17,35 +17,28 @@ model Section {
 }
 
 model Field {
-  id          String             @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   sectionId   String
   type        String // "number" | "text" | "select" | "checkbox"
-  required    Boolean            @default(false)
-  enabled     Boolean            @default(true)
-  options     FieldOption[]
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  section     Section            @relation(fields: [sectionId], references: [id])
-  fieldValues CalculationValue[] @relation("FieldValue")
-}
-
-model FieldOption {
-  id      String @id @default(uuid())
-  value   String
-  fieldId String
-  field   Field  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  required    Boolean  @default(false)
+  enabled     Boolean  @default(true)
+  options     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  section     Section  @relation(fields: [sectionId], references: [id])
+  logicValues String?
 }
 
 model LogicField {
-  id           String             @id @default(uuid())
+  id           String        @id @default(uuid())
   name         String
   sectionId    String
-  section      Section            @relation(fields: [sectionId], references: [id])
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  logicValues  CalculationValue[] @relation("LogicValue")
-  calculations Calculation[]      @relation("LogicCalculation")
+  section      Section       @relation(fields: [sectionId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  logicValues  String?
+  calculations Calculation[]
 }
 
 model Calculation {
@@ -54,29 +47,15 @@ model Calculation {
   type       String // "simple" | "conditional"
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
-  logicField LogicField  @relation("LogicCalculation", fields: [logicId], references: [id], onDelete: Cascade)
-  operations Operation[]
+  logicField LogicField  @relation(fields: [logicId], references: [id], onDelete: Cascade)
+  operations String       @default("[]")
 }
 
-model Operation {
-  id            String            @id @default(uuid())
-  operator      String // "add" | "subtract" | "multiply" | "divide" | "percentage"
-  calculationId String
-  calculation   Calculation       @relation(fields: [calculationId], references: [id], onDelete: Cascade)
-  value1        CalculationValue  @relation("Value1", fields: [value1Id], references: [id])
-  value2        CalculationValue? @relation("Value2", fields: [value2Id], references: [id])
-  value1Id      String
-  value2Id      String?
-}
-
-model CalculationValue {
-  id                 String      @id @default(uuid())
-  type               String // "number" | "field" | "logic"
-  value              String?
-  fieldId            String?
-  logicId            String?
-  field              Field?      @relation("FieldValue", fields: [fieldId], references: [id])
-  logic              LogicField? @relation("LogicValue", fields: [logicId], references: [id])
-  operationsAsValue1 Operation[] @relation("Value1")
-  operationsAsValue2 Operation[] @relation("Value2")
-}
+// model Operation {
+//   id            String      @id @default(uuid())
+//   operator      String // "add" | "subtract" | "multiply" | "divide" | "percentage"
+//   calculationId String
+//   calculation   Calculation @relation(fields: [calculationId], references: [id], onDelete: Cascade)
+//   value1        String      @default("{}")
+//   value2        String?     @default("{}")
+// }

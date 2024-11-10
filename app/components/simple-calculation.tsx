@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { operations } from "~/lib/constant";
+import { defaultSimpleOperations, operations } from "~/lib/constant";
 import {
   SimpleCalculationType,
   InputFieldType,
@@ -17,19 +17,14 @@ import {
   OperatorType,
   LogicFieldType,
 } from "~/lib/types";
-import { isBrowser } from "~/lib/utils";
 import { CalculationValueSelector } from "~/components/calculation-value-selector";
 
 interface SimpleCalculationProps {
   calculation?: SimpleCalculationType;
   fields: InputFieldType[];
   logicFields: LogicFieldType[];
-  defaultData: CalculationOperation;
   onDelete: (calculationId: string, operationId: string) => void;
-  updateOperation: (
-    calculationLogicId: string,
-    newOperation: CalculationOperation
-  ) => void;
+  updateOperation: (newOperation: CalculationOperation) => void;
 }
 
 export function SimpleCalculation({
@@ -38,10 +33,11 @@ export function SimpleCalculation({
   logicFields,
   onDelete,
   updateOperation,
-  defaultData,
 }: SimpleCalculationProps) {
   const [defaultOperations, setDefaultOperations] =
-    useState<CalculationOperation>(defaultData);
+    useState<CalculationOperation>(
+      defaultSimpleOperations as CalculationOperation
+    );
 
   const handleUpdateValue = ({
     operationId,
@@ -51,37 +47,39 @@ export function SimpleCalculation({
     fieldId,
   }: {
     operationId: string;
-    where: "value1" | "value2";
+    where: "value1" | "value2" | "operator";
     value: string;
-    type: CalculationFieldType;
-    fieldId: string | null;
+    type?: CalculationFieldType;
+    fieldId?: string | null;
   }) => {
     if (type === "logic") {
       value =
-        logicFields.find((field: any) => field.id === fieldId)?.name || "";
+        logicFields.find((field: LogicFieldType) => field.id === fieldId)
+          ?.name || "";
     } else if (type === "field") {
       value = fields.find((field: any) => field.id === fieldId)?.name || "";
     }
+
     const updatedOperation = {
       ...defaultOperations,
       id: operationId,
-      [where]: { type, fieldId, value },
+      [where]: where === "operator" ? value : { type, fieldId, value },
     };
     setDefaultOperations(updatedOperation);
-    updateOperation(calculation?.logicId || "", updatedOperation);
+    updateOperation(updatedOperation);
   };
 
   if (!calculation) return null;
   return (
     <div className="grid grid-cols-1">
       {calculation.operations?.map((operation: CalculationOperation) => (
-        <div key={operation.id} className="flex items-end  gap-2 mb-4">
+        <div key={operation.id} className="flex items-end gap-2 mb-4">
           <CalculationValueSelector
             fields={fields}
             logicFields={logicFields}
             placeholder="Select a value"
-            defaultType={operation.value1.type}
-            defaultValue={operation.value1.value}
+            defaultType={operation.value1?.type}
+            defaultValue={operation.value1?.value}
             onValueChange={({ value, type, fieldId }) =>
               handleUpdateValue({
                 operationId: operation.id,
@@ -96,9 +94,10 @@ export function SimpleCalculation({
           <Select
             value={operation.operator}
             onValueChange={(value) =>
-              setDefaultOperations({
-                ...defaultOperations,
-                operator: value as OperatorType,
+              handleUpdateValue({
+                operationId: operation.id,
+                value: value as OperatorType,
+                where: "operator",
               })
             }
           >
