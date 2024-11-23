@@ -13,7 +13,12 @@ export const FieldTypeSelector = ({
 }: FieldTypeSelectorProps) => (
   <RadioGroup
     value={condition.fieldType}
-    onValueChange={(value) => onUpdate({ fieldType: value, field: "" })}
+    onValueChange={(value) =>
+      onUpdate({
+        fieldType: value as (typeof FieldTypes)[keyof typeof FieldTypes],
+        field: "",
+      })
+    }
     className="flex items-center space-x-4"
   >
     <div className="flex items-center space-x-2">

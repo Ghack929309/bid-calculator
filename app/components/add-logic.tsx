@@ -58,7 +58,7 @@ export function AddLogic({
     return calculations?.find((cal) => cal.logicId === logicId);
   }, [calculations, logicId]);
 
-  const addCalculation = () => {
+  const addOperation = () => {
     const newCalculation = calculationService.addCalculation({
       calculations: calculations as SimpleCalculationType[],
       logicId,
@@ -118,6 +118,7 @@ export function AddLogic({
                 calculation={selectedCalculation}
                 fields={fields}
                 logicFields={logicalField}
+                addMoreOperation={addOperation}
                 updateOperation={updateOperation}
                 onDelete={removeCalculation}
               />
@@ -133,9 +134,13 @@ export function AddLogic({
             </div>
 
             <div className="flex space-x-2">
-              <Button variant="outline" onClick={addCalculation}>
+              <Button
+                disabled={calculations.length > 0}
+                variant="outline"
+                onClick={addOperation}
+              >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Simple Operation
+                Add Simple Calculation
               </Button>
               <Button
                 disabled={condition !== null}
@@ -144,7 +149,7 @@ export function AddLogic({
                 onClick={addCondition}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Conditional Operation
+                Add Conditional Calculation
               </Button>
             </div>
             <Button onClick={saveCalculations} variant="default">

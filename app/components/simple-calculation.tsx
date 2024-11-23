@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
@@ -18,9 +18,11 @@ import {
   LogicFieldType,
 } from "~/lib/types";
 import { CalculationValueSelector } from "~/components/calculation-value-selector";
+import { Render } from "./render";
 
 interface SimpleCalculationProps {
   calculation?: SimpleCalculationType;
+  addMoreOperation: () => void;
   fields: InputFieldType[];
   logicFields: LogicFieldType[];
   onDelete: (calculationId: string, operationId: string) => void;
@@ -31,6 +33,7 @@ export function SimpleCalculation({
   calculation,
   fields,
   logicFields,
+  addMoreOperation,
   onDelete,
   updateOperation,
 }: SimpleCalculationProps) {
@@ -71,7 +74,7 @@ export function SimpleCalculation({
 
   if (!calculation) return null;
   return (
-    <div className="grid grid-cols-1">
+    <div className=" grid grid-cols-1">
       {calculation.operations?.map((operation: CalculationOperation) => (
         <div key={operation.id} className="flex items-end gap-2 mb-4">
           <CalculationValueSelector
@@ -141,6 +144,12 @@ export function SimpleCalculation({
           </Button>
         </div>
       ))}
+      <Render when={calculation.operations.length > 0}>
+        <Button className="mt-2" onClick={addMoreOperation}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Operation
+        </Button>
+      </Render>
     </div>
   );
 }
