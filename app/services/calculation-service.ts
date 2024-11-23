@@ -5,7 +5,6 @@ import {
   CalculationType,
   CalculationValue,
   InputFieldType,
-  LogicFieldType,
   OperatorType,
   SimpleCalculationType,
 } from "~/lib/types";
@@ -32,7 +31,7 @@ type PreparedCalculationResult = {
 
 class CalculationService {
   private static instance: CalculationService;
-
+  private computedValues: Map<string, number> = new Map();
   private constructor() {}
 
   static getInstance(): CalculationService {
@@ -206,52 +205,61 @@ class CalculationService {
     });
   }
 
-  // updateCondition({
-  //   calculations,
-  //   calculationId,
-  //   conditionId,
-  //   updates,
-  // }: {
-  //   calculations: (SimpleCalculationType | ConditionalCalculationType)[];
-  //   calculationId: string;
-  //   conditionId: string;
-  //   updates: Partial<ConditionType>;
-  // }) {
-  //   return calculations.map((calc) => {
-  //     if (calc.id === calculationId && "conditions" in calc) {
-  //       return {
-  //         ...calc,
-  //         conditions: calc.conditions.map((cond) =>
-  //           cond.id === conditionId ? { ...cond, ...updates } : cond
-  //         ),
-  //       };
-  //     }
-  //     return calc;
-  //   });
-  // }
+  #resolveValue(
+    value: any,
+    formFields?: InputFieldType[],
+    formData?: Record<string, string>
+  ): number {
+    if (!value) return 0;
 
-  // removeCondition({
-  //   calculations,
-  //   calculationId,
-  //   conditionId,
-  // }: {
-  //   calculations: (SimpleCalculationType | ConditionalCalculationType)[];
-  //   calculationId: string;
-  //   conditionId: string;
-  // }) {
-  //   return calculations.map((calc) => {
-  //     if (calc.id === calculationId && "conditions" in calc) {
-  //       return {
-  //         ...calc,
-  //         conditions: calc.conditions.filter((c) => c.id !== conditionId),
-  //       };
-  //     }
-  //     return calc;
-  //   });
-  // }
-  #computeOperation(operation: CalculationOperation): number {
-    const value1 = parseFloat(operation.value1.value) || 0;
-    const value2 = parseFloat(operation.value2?.value || "0") || 0;
+    // Handle direct number or string values
+    if (typeof value === "number") return value;
+    if (typeof value === "string") return parseFloat(value) || 0;
+
+    if (typeof value === "object") {
+      if (value.type === "number") {
+        return parseFloat(value.value) || 0;
+      }
+
+      if (value.type === "field" && formFields && formData) {
+        // Check if we already computed this field
+        const cacheKey = `field_${value.fieldId}`;
+        if (this.computedValues.has(cacheKey)) {
+          return this.computedValues.get(cacheKey)!;
+        }
+
+        const field = formFields.find((f) => f.id === value.fieldId);
+        if (!field) return 0;
+
+        // If this field has its own calculation
+        if ("calculation" in field && field.calculation) {
+          const result = this.computeCalculation(
+            field.calculation,
+            formFields,
+            formData
+          );
+          this.computedValues.set(cacheKey, result);
+          return result;
+        }
+
+        // If it's a simple field value
+        const fieldValue = parseFloat(formData[value.fieldId] || "0");
+        this.computedValues.set(cacheKey, fieldValue);
+        return fieldValue;
+      }
+    }
+
+    return 0;
+  }
+
+  #computeOperation(
+    operation: any,
+    formFields?: InputFieldType[],
+    formData?: Record<string, string>
+  ): number {
+    const value1 = this.#resolveValue(operation.value1, formFields, formData);
+    const value2 =
+      this.#resolveValue(operation.value2, formFields, formData) || 0;
 
     switch (operation.operator) {
       case "add":
@@ -269,44 +277,56 @@ class CalculationService {
     }
   }
 
-  computeCalculation(calculation: SimpleCalculationType): number {
-    if (!calculation?.operations?.length) return 0;
+  computeCalculation(
+    calculation: any,
+    formFields?: InputFieldType[],
+    formData?: Record<string, string>
+  ): number {
+    // Clear the memoization cache for new calculations
+    this.computedValues.clear();
 
-    return calculation.operations.reduce((total, operation) => {
-      return total + this.#computeOperation(operation);
+    if (!calculation?.operations) return 0;
+
+    const operations =
+      typeof calculation.operations === "string"
+        ? JSON.parse(calculation.operations)
+        : calculation.operations;
+
+    if (!Array.isArray(operations) || operations.length === 0) return 0;
+
+    return operations.reduce((total, operation) => {
+      return total + this.#computeOperation(operation, formFields, formData);
     }, 0);
   }
 
   validateAndPrepareCalculation(
     calculation: SimpleCalculationType,
     formFields: InputFieldType[],
-    formData: Record<string, string>,
-    logicFields: Record<string, LogicFieldType>
+    formData: Record<string, string>
   ): PreparedCalculationResult {
     const errors: ValidationError[] = [];
 
+    // Parse operations if they're stored as a JSON string
+    const operations =
+      typeof calculation.operations === "string"
+        ? JSON.parse(calculation.operations)
+        : calculation.operations;
+
     // Validate and prepare each operation
-    const operations = calculation.operations.map((op, index) => {
+    const validatedOperations = operations.map((op: any, index: number) => {
       const value1Result = this.validateAndResolveValue(
         op.value1,
         formFields,
         formData,
-        logicFields,
         `Operation ${index + 1} - Value 1`
       );
       const value2Result = this.validateAndResolveValue(
-        op.value2 || {
-          type: "number",
-          fieldId: null,
-          value: "0",
-        },
+        op.value2 || { type: "number", fieldId: null, value: "0" },
         formFields,
         formData,
-        logicFields,
         `Operation ${index + 1} - Value 2`
       );
 
-      // Collect any errors
       if (value1Result.error) errors.push(value1Result.error);
       if (value2Result.error) errors.push(value2Result.error);
 
@@ -318,15 +338,12 @@ class CalculationService {
     });
 
     if (errors.length > 0) {
-      return {
-        isValid: false,
-        errors,
-      };
+      return { isValid: false, errors };
     }
 
     return {
       isValid: true,
-      data: { operations },
+      data: { operations: validatedOperations },
     };
   }
 
@@ -334,7 +351,6 @@ class CalculationService {
     value: CalculationValue,
     formFields: InputFieldType[],
     formData: Record<string, string>,
-    logicFields: Record<string, LogicFieldType>,
     fieldIdentifier: string
   ): { value: number; error?: ValidationError } {
     switch (value.type) {

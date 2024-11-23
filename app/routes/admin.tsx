@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Archive, GitBranchPlus, Globe, Pencil, Trash2 } from "lucide-react";
+import {
+  Archive,
+  GitBranchPlus,
+  Globe,
+  Pencil,
+  Trash2,
+  Variable,
+} from "lucide-react";
 import { AddLogic } from "~/components/add-logic";
 import {
   InputFieldType,
@@ -14,8 +21,9 @@ import { CreateField } from "~/components/create-field";
 import { ActionFunctionArgs, json, LoaderFunctionArgs } from "@remix-run/node";
 import { db } from "~/services/database-service";
 import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
-import { cx } from "class-variance-authority";
-import { Button } from "~/components/ui/button";
+import { calculationService } from "~/services/calculation-service";
+import { Result } from "~/components/result";
+import { AddVariableField } from "~/components/add-variable-field";
 
 export enum Action {
   createSection = "createSection",
@@ -182,6 +190,10 @@ const CalculatorAdmin = () => {
   const [activeTab, setActiveTab] = useState(sectionId);
   const selectedSection = sections?.find((s) => s?.id === activeTab);
   const isPublished = selectedSection?.isPublished;
+  const [displayResult, setDisplayResult] = useState(false);
+  const [calculationResults, setCalculationResults] = useState<
+    Array<{ name: string; result: number }>
+  >([]);
 
   const handleAddSection = (section: string) => {
     calcFetcher.submit(
@@ -271,6 +283,46 @@ const CalculatorAdmin = () => {
     );
   };
 
+  const handleFormSubmit = (formData: Record<string, string>) => {
+    try {
+      // Filter logic fields that belong to the current section
+      const sectionLogicFields = logicFields.filter(
+        (logic) => logic.sectionId === activeTab
+      );
+
+      // Get calculations for each logic field and compute results
+      const results = sectionLogicFields
+        .map((logic) => {
+          const calculation = calculations.find(
+            (calc) => calc.logicId === logic.id
+          );
+          if (!calculation) return null;
+
+          const result = calculationService.computeCalculation(
+            calculation,
+            fields as InputFieldType[],
+            formData
+          );
+
+          return {
+            name: logic.name,
+            result: Number(result.toFixed(2)), // Round to 2 decimal places
+          };
+        })
+        .filter(
+          (result): result is { name: string; result: number } =>
+            result !== null
+        );
+
+      setCalculationResults(results);
+      setDisplayResult(true);
+      return results; // Return results for potential further processing
+    } catch (error) {
+      console.error("Calculation error:", error);
+      throw error;
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       <section>
@@ -303,15 +355,29 @@ const CalculatorAdmin = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <DynamicForm
             fields={fields as unknown as InputFieldType[]}
-            onSubmit={() => {}}
+            onSubmit={handleFormSubmit}
             isEditing={true}
             sectionId={activeTab}
             handleDeleteField={handleDeleteField}
             handleUpdateField={handleUpdateField}
           />
 
+          {displayResult && (
+            <Result
+              calculations={calculationResults}
+              onClose={() => setDisplayResult(false)}
+            />
+          )}
+
           {/* Save Button */}
           <div className="mt-8 flex gap-x-3 items-end justify-end">
+            <AddVariableField
+              availableFields={fields as InputFieldType[]}
+              onSave={() => {}}
+              trigger={
+                <Variable className="w-4 h-4 cursor-pointer text-gray-600 hover:text-gray-700" />
+              }
+            />
             <AddField
               sectionId={activeTab}
               initialField={getInitialFieldState({ type: "number" })}

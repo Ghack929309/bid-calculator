@@ -52,9 +52,15 @@ export function DynamicForm({
         });
       }
 
-      // if (field.required) {
-      //   validator = validator?.min(1, "This field is required");
-      // }
+      if (field.required) {
+        validator =
+          field.type === "number"
+            ? validator.refine(
+                (val) => val.length > 0,
+                "This field is required"
+              )
+            : validator.min(1, "This field is required");
+      }
 
       return { ...acc, [field.name]: validator };
     }, {})
@@ -71,6 +77,16 @@ export function DynamicForm({
     ),
   });
 
+  const handleFormSubmit = async (data: z.infer<typeof formSchema>) => {
+    try {
+      await onSubmit(data);
+      setDisplayResult(true);
+    } catch (error) {
+      console.error("Form submission error:", error);
+      setDisplayResult(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -78,7 +94,10 @@ export function DynamicForm({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleFormSubmit)}
+            className="space-y-6"
+          >
             {fields.map((field) => (
               <div
                 className={cn(
@@ -112,6 +131,7 @@ export function DynamicForm({
                 )}
               </div>
             ))}
+
             <Button type="submit" className="w-full">
               Submit
             </Button>
