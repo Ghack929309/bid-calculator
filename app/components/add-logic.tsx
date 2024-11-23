@@ -10,6 +10,7 @@ import {
 } from "~/components/ui/card";
 import {
   CalculationOperation,
+  ConditionType,
   InputFieldType,
   LogicFieldType,
   SimpleCalculationType,
@@ -19,6 +20,9 @@ import { calculationService } from "~/services/calculation-service";
 import { SimpleCalculation } from "./simple-calculation";
 import { useFetcher } from "@remix-run/react";
 import { Action } from "~/routes/admin";
+import { ConditionalCalculation } from "./condition-calculation";
+import { createInitialCondition } from "~/lib/utils";
+import { Render } from "./render";
 
 export function AddLogic({
   fields,
@@ -35,6 +39,20 @@ export function AddLogic({
   const [openModal, setOpenModal] = useState(false);
   const [calculations, setCalculations] =
     useState<SimpleCalculationType[]>(initialCalculations);
+
+  const [condition, setCondition] = useState<ConditionType | null>(null);
+
+  const addCondition = () => {
+    setCondition(createInitialCondition());
+  };
+
+  const updateCondition = (updates: Partial<ConditionType>) => {
+    setCondition(condition ? { ...condition, ...updates } : null);
+  };
+
+  const removeCondition = () => {
+    setCondition(null);
+  };
 
   const selectedCalculation = useMemo(() => {
     return calculations?.find((cal) => cal.logicId === logicId);
@@ -103,21 +121,31 @@ export function AddLogic({
                 updateOperation={updateOperation}
                 onDelete={removeCalculation}
               />
+              <Render when={condition !== null}>
+                <ConditionalCalculation
+                  condition={condition as ConditionType}
+                  fields={fields}
+                  logicFields={logicalField}
+                  onUpdate={updateCondition}
+                  onRemove={removeCondition}
+                />
+              </Render>
             </div>
 
             <div className="flex space-x-2">
               <Button variant="outline" onClick={addCalculation}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Simple Calculation
+                Add Simple Operation
               </Button>
-              {/* <Button
+              <Button
+                disabled={condition !== null}
                 className="mr-auto"
-                variant="outline"
-                onClick={addCalculation}
+                variant="default"
+                onClick={addCondition}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Conditional Calculation
-              </Button> */}
+                Add Conditional Operation
+              </Button>
             </div>
             <Button onClick={saveCalculations} variant="default">
               Save

@@ -57,3 +57,53 @@ export type SimpleCalculationType = {
   type: CalculationType.SIMPLE;
   operations: CalculationOperation[];
 };
+
+export const FieldTypes = {
+  INPUT: "input",
+  LOGIC: "logic",
+} as const;
+
+export type ConditionType = {
+  id: string;
+  fieldType: typeof FieldTypes.INPUT | typeof FieldTypes.LOGIC;
+  field: string;
+  operator: string;
+  compareValueType: (typeof CompareValueTypes)[keyof typeof CompareValueTypes];
+  compareValue: string;
+  compareFieldId: string;
+  valueType: string;
+  resultType: string;
+  resultValue: string;
+  resultField: string;
+  mathOperation: string;
+  operationValue: string;
+  thenValue: string;
+  thenOperation: string;
+  thenCalculations: SimpleCalculationType;
+  elseValue: string;
+  elseOperation: string;
+  elseCalculations: SimpleCalculationType;
+};
+
+export const ConditionOperators = {
+  EQUALS: "equals",
+  GREATER_THAN: "greaterThan",
+  LESS_THAN: "lessThan",
+  GREATER_EQUAL: "greaterEqual",
+  LESS_EQUAL: "lessEqual",
+};
+
+export const CompareValueTypes = {
+  FIXED: "fixed",
+  INPUT: "input",
+  LOGIC: "logic",
+} as const;
+
+export const MathOperations = {
+  NONE: "none",
+  ADD: "add",
+  SUBTRACT: "subtract",
+  MULTIPLY: "multiply",
+  DIVIDE: "divide",
+  PERCENTAGE: "percentage",
+};

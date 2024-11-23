@@ -1,6 +1,16 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { FieldType, InputFieldType, OptionsField, SimpleField } from "./types";
+import {
+  CalculationType,
+  CompareValueTypes,
+  ConditionOperators,
+  ConditionType,
+  FieldType,
+  FieldTypes,
+  InputFieldType,
+  MathOperations,
+} from "./types";
+import { v4 } from "uuid";
 
 export const isBrowser = typeof window !== "undefined";
 
@@ -26,6 +36,43 @@ export const getInitialFieldState = ({
   };
 
   return type === "number" || type === "text"
-    ? ({ ...baseField } as SimpleField)
-    : ({ ...baseField, options: options || [] } as OptionsField);
+    ? { ...baseField }
+    : { ...baseField, options: options || [] };
 };
+
+const ValueTypes = {
+  FIXED: "fixed",
+  FIELD: "field",
+};
+
+export const createInitialCondition = (): ConditionType => ({
+  id: v4(),
+  fieldType: FieldTypes.INPUT,
+  field: "",
+  operator: ConditionOperators.EQUALS,
+  compareValueType: CompareValueTypes.FIXED,
+  compareValue: "",
+  compareFieldId: "",
+  valueType: ValueTypes.FIXED,
+  resultType: ValueTypes.FIXED,
+  resultValue: "",
+  resultField: "",
+  mathOperation: MathOperations.NONE,
+  operationValue: "",
+  thenValue: "",
+  thenOperation: MathOperations.NONE,
+  thenCalculations: {
+    id: v4(),
+    logicId: "",
+    type: CalculationType.SIMPLE,
+    operations: [],
+  },
+  elseValue: "",
+  elseOperation: MathOperations.NONE,
+  elseCalculations: {
+    id: v4(),
+    logicId: "",
+    type: CalculationType.SIMPLE,
+    operations: [],
+  },
+});

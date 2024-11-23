@@ -82,7 +82,7 @@ export const AddVariableField = ({
           </div>
         </div>
         <Render when={variableType === "miles"}>
-          <MilesVariable />
+          <MilesVariable availableFields={availableFields} onSave={() => {}} />
         </Render>
         <Render when={variableType === "price-range"}>
           <PriceRangeVariable
