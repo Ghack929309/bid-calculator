@@ -1,12 +1,16 @@
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
-import { ConditionType, InputFieldType, LogicFieldType } from "~/lib/types";
+import {
+  ConditionalCalculationType,
+  InputFieldType,
+  LogicFieldType,
+} from "~/lib/types";
 import { SingleCondition } from "./condition/single-condition";
 
 type ConditionalCalculationProps = {
   fields: InputFieldType[];
   logicFields: LogicFieldType[];
-  condition: ConditionType;
-  onUpdate: (updates: Partial<ConditionType>) => void;
+  condition: ConditionalCalculationType;
+  onUpdate: (updates: Partial<ConditionalCalculationType>) => void;
   onRemove: () => void;
 };
 

@@ -14,14 +14,17 @@ import { v4 } from "uuid";
 import { InputFieldType } from "~/lib/types";
 
 export const MilesVariable = ({
-  availableFields,
   onSave,
+  initialData,
+  updateMilesVariableField,
+  fields,
 }: {
-  availableFields: InputFieldType[];
-  onSave: () => void;
+  onSave?: (field: InputFieldType) => void;
+  initialData?: InputFieldType;
+  updateMilesVariableField?: (field: InputFieldType) => void;
+  fields?: InputFieldType[];
 }) => {
-  const [fieldName, setFieldName] = useState("");
-  const [baseField, setBaseField] = useState("");
+  const [fieldName, setFieldName] = useState(initialData?.name || "");
   const [csvData, setCsvData] = useState<Record<string, string>[] | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState({
@@ -41,7 +44,20 @@ export const MilesVariable = ({
       ratePerMiles: string;
       id: string;
     }>
-  >([]);
+  >(() => {
+    if (!initialData?.entries || initialData.type !== "miles") return [];
+
+    try {
+      const parsed = JSON.parse(initialData.entries);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error("Error parsing entries:", error);
+      return [];
+    }
+  });
+  const [baseFieldId, setBaseFieldId] = useState(
+    initialData?.type === "miles" ? initialData.baseFieldId : ""
+  );
 
   // Handle CSV file upload
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +101,7 @@ export const MilesVariable = ({
   };
 
   const removeEntry = (id: string) => {
-    setEntries(entries.filter((entry) => entry.id !== id));
+    setEntries(entries.filter((_, index) => String(index) !== id));
   };
 
   const addManualEntry = () => {
@@ -101,16 +117,50 @@ export const MilesVariable = ({
     setManualInput({ state: "", miles: "", ratePerMiles: "" });
   };
 
+  const handleSave = () => {
+    if (!fieldName || entries.length === 0 || !baseFieldId) {
+      alert(
+        "Please enter a field name, select a base field, and add at least one entry"
+      );
+      return;
+    }
+    if (initialData) {
+      updateMilesVariableField?.({
+        ...initialData,
+        type: "miles" as const,
+        name: fieldName,
+        baseFieldId,
+        entries: entries.map((entry) => ({
+          state: entry.state,
+          miles: entry.miles,
+          ratePerMiles: entry.ratePerMiles,
+        })),
+      });
+      return;
+    }
+    const fieldConfig: InputFieldType = {
+      id: v4(),
+      sectionId: "",
+      name: fieldName,
+      type: "miles",
+      required: false,
+      enabled: true,
+      baseFieldId,
+      entries: entries.map((entry) => ({
+        state: entry.state,
+        miles: entry.miles,
+        ratePerMiles: entry.ratePerMiles,
+      })),
+    };
+
+    onSave?.(fieldConfig);
+  };
+  console.log("csvData", csvData);
   return (
     <Card className="w-full max-w-5xl mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">Rate Calculator</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-8">
+      <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-8">
-          {/* Left Column - CSV Upload and Mapping */}
           <div className="space-y-6">
-            {/* Field Name Input */}
             <div className="max-w-md bg-slate-50 p-6 rounded-lg space-y-4">
               <Label htmlFor="fieldName" className="text-lg font-semibold">
                 Field Name
@@ -122,6 +172,26 @@ export const MilesVariable = ({
                 placeholder="Enter field name"
                 className="mt-2 bg-white text-muted-foreground"
               />
+              <Label htmlFor="baseField" className="text-lg font-semibold">
+                Base Field
+              </Label>
+              <Select
+                defaultValue={
+                  fields?.find((field) => field.id === baseFieldId)?.name
+                }
+                onValueChange={(value) => setBaseFieldId(value)}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Select base field" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fields?.map((field) => (
+                    <SelectItem key={field.id} value={field.id}>
+                      {field.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="bg-slate-50 p-6 rounded-lg space-y-4">
               <h3 className="text-lg font-semibold">Import from CSV</h3>
@@ -283,23 +353,6 @@ export const MilesVariable = ({
 
           {/* Right Column - Entries Display */}
           <div className="bg-slate-50 p-6 rounded-lg space-y-4">
-            <div className="grid gap-2">
-              <label htmlFor="baseField" className="text-sm font-medium">
-                Base Field
-              </label>
-              <Select value={baseField} onValueChange={setBaseField}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select base field" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableFields?.map((field) => (
-                    <SelectItem key={field.id} value={field.id}>
-                      {field.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Entries</h3>
               <span className="text-sm text-slate-500">
@@ -307,15 +360,15 @@ export const MilesVariable = ({
               </span>
             </div>
 
-            <div className="space-y-3 max-h-[calc(100vh-100px)] overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-[calc(100vh-0px)] overflow-y-auto pr-2">
               {entries.length === 0 ? (
                 <div className="text-center text-slate-500 py-8">
                   No entries yet. Add entries manually or import from CSV.
                 </div>
               ) : (
-                entries.map((entry) => (
+                entries?.map((entry, idx) => (
                   <div
-                    key={entry.id}
+                    key={idx}
                     className="bg-white p-4 rounded-lg shadow-sm space-y-2"
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -342,7 +395,7 @@ export const MilesVariable = ({
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => removeEntry(entry.id)}
+                        onClick={() => removeEntry(String(idx))}
                         className="h-8"
                       >
                         Remove
@@ -353,6 +406,15 @@ export const MilesVariable = ({
               )}
             </div>
           </div>
+        </div>
+        <div className="flex justify-end mt-4">
+          <Button
+            onClick={handleSave}
+            disabled={!fieldName || entries.length === 0}
+            className="w-32"
+          >
+            {initialData ? "Update Field" : "Save Field"}
+          </Button>
         </div>
       </CardContent>
     </Card>

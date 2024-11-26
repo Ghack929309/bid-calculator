@@ -22,6 +22,7 @@ export const logicalOperators = [
 export const defaultSimpleOperations = {
   id: "",
   operator: "add",
+  nextOperator: "none",
   section: "",
   value1: {
     type: "field",

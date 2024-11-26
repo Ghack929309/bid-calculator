@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { InputFieldType } from "~/lib/types";
 import { Input } from "./ui/input";
 import {
   Select,
@@ -9,12 +8,15 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Button } from "./ui/button";
+import { v4 } from "uuid";
+import { Render } from "./render";
+import { InputFieldType } from "~/lib/types";
 
-// Define types for our price range
 interface PriceRange {
   min: number;
   max: number;
   value: number;
+  id: string;
 }
 
 interface CsvColumnMapping {
@@ -24,22 +26,32 @@ interface CsvColumnMapping {
 }
 
 export function PriceRangeVariable({
-  availableFields,
   onSave,
+  fields,
+  initialData,
+  updateField,
 }: {
-  availableFields: InputFieldType[];
-  onSave: (fieldConfig: {
-    name: string;
-    baseField: string;
-    min: undefined;
-    max: undefined;
-    value: undefined;
-  }) => void;
+  onSave?: (fieldConfig: InputFieldType) => void;
+  fields: InputFieldType[];
+  initialData?: InputFieldType;
+  updateField?: (field: InputFieldType) => void;
 }) {
-  const [fieldName, setFieldName] = useState("");
-  const [baseField, setBaseField] = useState("");
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [priceRanges, setPriceRanges] = useState<PriceRange[]>([]);
+  const [fieldName, setFieldName] = useState(initialData?.name || "");
+  const [baseFieldId, setBaseFieldId] = useState(
+    fields.find((field) => field.id === initialData?.baseFieldId)?.id || ""
+  );
+  const [priceRanges, setPriceRanges] = useState<PriceRange[]>(() => {
+    if (!initialData?.entries || initialData.type !== "priceRange") return [];
+
+    try {
+      const parsed = JSON.parse(initialData.entries);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error("Error parsing entries:", error);
+      return [];
+    }
+  });
+
   const [newRange, setNewRange] = useState<Partial<PriceRange>>({
     min: undefined,
     max: undefined,
@@ -53,52 +65,76 @@ export function PriceRangeVariable({
   });
   const [csvData, setCsvData] = useState<string[][]>([]);
 
-  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    const text = await file.text();
-    const rows = text
-      .split("\n")
-      .map((row) => row.split(",").map((cell) => cell.trim()));
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result;
+      if (typeof text !== "string") return;
 
-    // Get headers and remove any empty columns
-    const headers = rows[0].filter(Boolean);
-    setCsvColumns(headers);
-    setCsvData(rows);
+      const lines = text.split("\n");
+      const headers = lines[0].split(",").map((header) => header.trim());
 
-    // Reset mapping
-    setColumnMapping({
-      min: "",
-      max: "",
-      value: "",
-    });
-    // Reset price ranges
-    setPriceRanges([]);
+      const data = lines
+        .slice(1)
+        .map((line) => {
+          const values = line.split(",");
+          return headers.reduce((obj, header, index) => {
+            obj[header] = values[index]?.trim();
+            return obj;
+          }, {} as Record<string, string>);
+        })
+        .filter((row) => Object.values(row).some((value) => value)); // Remove empty rows
+
+      setCsvData(data);
+      setCsvColumns(headers);
+    };
+
+    reader.readAsText(file);
   };
 
   const handleApplyMapping = () => {
-    if (!columnMapping.min || !columnMapping.max || !columnMapping.value) {
+    if (
+      !columnMapping.min ||
+      !columnMapping.max ||
+      !columnMapping.value ||
+      !csvData
+    ) {
+      alert("Please upload a CSV file and map the columns correctly.");
       return;
     }
-
-    const minIndex = csvColumns.indexOf(columnMapping.min);
-    const maxIndex = csvColumns.indexOf(columnMapping.max);
-    const valueIndex = csvColumns.indexOf(columnMapping.value);
-
-    // Skip header row and parse CSV data
-    const ranges: PriceRange[] = csvData
-      .slice(1)
+    console.log("columnMapping", columnMapping);
+    console.log(
+      "csvData",
+      csvData.filter(
+        (row) =>
+          row[columnMapping.min] &&
+          row[columnMapping.max] &&
+          row[columnMapping.value]
+      )
+    );
+    // Parse the CSV data and create price ranges
+    const newRanges: PriceRange[] = csvData
+      .filter(
+        (row) =>
+          row[columnMapping.min] &&
+          row[columnMapping.max] &&
+          row[columnMapping.value]
+      )
       .map((row) => ({
-        min: parseFloat(row[minIndex]),
-        max: parseFloat(row[maxIndex]),
-        value: parseFloat(row[valueIndex]),
+        min: parseFloat(row[columnMapping.min]),
+        max: parseFloat(row[columnMapping.max]),
+        value: parseFloat(row[columnMapping.value]),
+        id: v4(),
       }))
       .filter(
         (range) => !isNaN(range.min) && !isNaN(range.max) && !isNaN(range.value)
       );
 
-    setPriceRanges(ranges);
+    // Add the new ranges to existing ones
+    setPriceRanges((prevRanges) => [...prevRanges, ...newRanges]);
   };
 
   const handleAddRange = () => {
@@ -113,14 +149,43 @@ export function PriceRangeVariable({
   };
 
   const handleSave = () => {
-    if (!fieldName || !baseField || priceRanges.length === 0) return;
-
-    onSave({
+    if (!fieldName || !baseFieldId || priceRanges.length === 0) {
+      alert(
+        "Please enter a field name, select a base field, and add at least one price range."
+      );
+      return;
+    }
+    if (initialData) {
+      const updatedField: InputFieldType = {
+        ...initialData,
+        name: fieldName,
+        baseFieldId,
+        entries: priceRanges.map((range) => ({
+          min: range.min.toString(),
+          max: range.max.toString(),
+          value: range.value.toString(),
+        })),
+      };
+      return void updateField?.(updatedField);
+    }
+    const fieldConfig: InputFieldType = {
+      id: v4(),
+      sectionId: "",
       name: fieldName,
-      baseField,
-      priceRanges,
-    });
+      type: "priceRange",
+      required: false,
+      enabled: true,
+      baseFieldId,
+      entries: priceRanges.map((range) => ({
+        min: range.min.toString(),
+        max: range.max.toString(),
+        value: range.value.toString(),
+      })),
+    };
+
+    onSave?.(fieldConfig);
   };
+
   return (
     <div className="grid gap-6 py-4">
       {/* Top Section - Basic Info */}
@@ -136,17 +201,21 @@ export function PriceRangeVariable({
             placeholder="Enter field name"
           />
         </div>
-
         <div className="grid gap-2">
           <label htmlFor="baseField" className="text-sm font-medium">
             Base Field
           </label>
-          <Select value={baseField} onValueChange={setBaseField}>
+          <Select
+            defaultValue={
+              fields.find((field) => field.id === baseFieldId)?.id || ""
+            }
+            onValueChange={(value) => setBaseFieldId(value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select base field" />
             </SelectTrigger>
             <SelectContent>
-              {availableFields?.map((field) => (
+              {fields?.map((field) => (
                 <SelectItem key={field.id} value={field.id}>
                   {field.name}
                 </SelectItem>
@@ -160,7 +229,7 @@ export function PriceRangeVariable({
       <div className="grid grid-cols-2 gap-6">
         {/* Left Column - Manual Input */}
         <div className="grid gap-4">
-          <div className="border rounded-lg p-4 bg-white">
+          <div className="border h-fit rounded-lg p-4 bg-white">
             <h3 className="text-lg font-medium mb-4">
               Add Price Range Manually
             </h3>
@@ -228,14 +297,14 @@ export function PriceRangeVariable({
           </div>
 
           {/* CSV Upload Section */}
-          <div className="border rounded-lg p-4 bg-white">
+          <div className="border h-fit rounded-lg p-4 bg-white">
             <h3 className="text-lg font-medium mb-4">Import from CSV</h3>
             <div className="grid gap-3">
               <Input
                 id="csvFile"
                 type="file"
                 accept=".csv"
-                onChange={handleCsvUpload}
+                onChange={handleFileUpload}
               />
               <p className="text-sm text-gray-500">
                 Upload a CSV file with columns for minimum price, maximum price,
@@ -247,8 +316,8 @@ export function PriceRangeVariable({
 
         {/* Right Column - CSV Mapping & Price Ranges */}
         <div className="grid gap-4">
-          {csvColumns.length > 0 && (
-            <div className="border rounded-lg p-4 bg-white">
+          <Render when={csvColumns.length > 0 && !priceRanges.length}>
+            <div className="border h-fit rounded-lg p-4 bg-white">
               <h3 className="text-lg font-medium mb-4">Map CSV Columns</h3>
               <div className="grid gap-4">
                 <div className="grid gap-2">
@@ -323,59 +392,94 @@ export function PriceRangeVariable({
                   </Select>
                 </div>
 
-                <Button
-                  onClick={handleApplyMapping}
-                  disabled={
-                    !columnMapping.min ||
-                    !columnMapping.max ||
-                    !columnMapping.value
-                  }
-                >
-                  Apply Mapping
-                </Button>
+                <div className="mt-4">
+                  <Button
+                    onClick={handleApplyMapping}
+                    disabled={
+                      !columnMapping.min ||
+                      !columnMapping.max ||
+                      !columnMapping.value
+                    }
+                  >
+                    Apply Mapping
+                  </Button>
+                  <div className="mt-2 text-sm text-gray-500">
+                    Current mapping: {columnMapping.min} → Min,{" "}
+                    {columnMapping.max} → Max, {columnMapping.value} → Value
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+          </Render>
 
-          {/* Price Ranges List */}
+          {/* Price Ranges List - Updated styling */}
           {priceRanges.length > 0 && (
-            <div className="border rounded-lg p-4 bg-white">
-              <h3 className="text-lg font-medium mb-4">Price Ranges</h3>
-              <div className="max-h-[300px] overflow-y-auto">
-                <ul className="space-y-2">
-                  {priceRanges.map((range, index) => (
-                    <li
-                      key={index}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded"
+            <div className="bg-slate-50 p-6 rounded-lg space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Price Ranges</h3>
+                <span className="text-sm text-slate-500">
+                  {priceRanges.length}
+                  {priceRanges.length === 1 ? "range" : "ranges"}
+                </span>
+              </div>
+
+              <div className="space-y-3 max-h-[calc(60vh-100px)] overflow-y-auto pr-2">
+                {priceRanges.length === 0 ? (
+                  <div className="text-center text-slate-500 py-8">
+                    No price ranges yet. Add ranges manually or import from CSV.
+                  </div>
+                ) : (
+                  priceRanges.map((range, idx) => (
+                    <div
+                      key={range.id}
+                      className="bg-white p-4 rounded-lg shadow-sm space-y-2"
                     >
-                      <span>
-                        ${range.min.toFixed(2)} - ${range.max.toFixed(2)}: $
-                        {range.value.toFixed(2)}
-                      </span>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoveRange(index)}
-                      >
-                        Remove
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                        <div className="flex flex-wrap">
+                          <span className="text-slate-500">Min:</span>
+                          <span className="ml-2 font-medium break-all">
+                            ${Number(range.min).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap">
+                          <span className="text-slate-500">Max:</span>
+                          <span className="ml-2 font-medium break-all">
+                            ${Number(range.max).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap">
+                          <span className="text-slate-500">Value:</span>
+                          <span className="ml-2 font-medium break-all">
+                            ${Number(range.value).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveRange(idx)}
+                          className="h-8"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Bottom Section - Save Button */}
-      <div className="flex justify-end pt-4 border-t">
+      <div className="flex justify-end ">
         <Button
           onClick={handleSave}
-          disabled={!fieldName || !baseField || priceRanges.length === 0}
+          disabled={!fieldName || !baseFieldId || priceRanges.length === 0}
           className="w-32"
         >
-          Save Field
+          {initialData ? "Update Field" : "Save Field"}
         </Button>
       </div>
     </div>

@@ -27,6 +27,12 @@ import { AddVariableField } from "~/components/add-variable-field";
 
 export enum Action {
   createSection = "createSection",
+  createMilesVariableField = "createMilesVariableField",
+  createPriceRangeVariableField = "createPriceRangeVariableField",
+  updateMilesVariableField = "updateMilesVariableField",
+  deleteMilesVariableField = "deleteMilesVariableField",
+  updatePriceRangeVariableField = "updatePriceRangeVariableField",
+  deletePriceRangeVariableField = "deletePriceRangeVariableField",
   deleteSection = "deleteSection",
   createField = "createField",
   createLogicField = "createLogicField",
@@ -51,6 +57,45 @@ export async function action({ request }: ActionFunctionArgs) {
             sectionId: data.sectionId,
             isPublished: data.isPublished,
           }),
+        });
+      }
+      case Action.createMilesVariableField: {
+        return json({
+          error: null,
+          data: await db.createMilesVariableField(data),
+        });
+      }
+      case Action.updateMilesVariableField: {
+        console.log("update miles variable field", data);
+        return json({
+          error: null,
+          data: await db.updateMilesVariableField(data),
+        });
+      }
+      case Action.deleteMilesVariableField: {
+        console.log("delete miles variable field", data);
+        return json({
+          error: null,
+          data: await db.deleteMilesVariableField(data.id),
+        });
+      }
+      case Action.createPriceRangeVariableField: {
+        console.log("create price range variable field", data);
+        return json({
+          error: null,
+          data: await db.createPriceRangeVariableField(data),
+        });
+      }
+      case Action.updatePriceRangeVariableField: {
+        return json({
+          error: null,
+          data: await db.updatePriceRangeVariableField(data),
+        });
+      }
+      case Action.deletePriceRangeVariableField: {
+        return json({
+          error: null,
+          data: await db.deletePriceRangeVariableField(data.id),
         });
       }
       case Action.deleteSection: {
@@ -221,6 +266,32 @@ const CalculatorAdmin = () => {
       { method: "post", encType: "application/json" }
     );
   };
+  const handleSaveMilesVariable = (field: InputFieldType) => {
+    const fieldWithSection = {
+      ...field,
+      sectionId: activeTab,
+    };
+
+    calcFetcher.submit(
+      {
+        action: Action.createMilesVariableField,
+        data: fieldWithSection,
+      },
+      { method: "post", encType: "application/json" }
+    );
+  };
+  const handleUpdateMilesVariableField = (field: InputFieldType) => {
+    calcFetcher.submit(
+      { action: Action.updateMilesVariableField, data: field },
+      { method: "post", encType: "application/json" }
+    );
+  };
+  const handleDeleteMilesVariableField = (id: string) => {
+    calcFetcher.submit(
+      { action: Action.deleteMilesVariableField, data: { id } },
+      { method: "post", encType: "application/json" }
+    );
+  };
 
   const handleUpdateField = (field: InputFieldType) => {
     console.log("field from handle update field", field);
@@ -263,7 +334,6 @@ const CalculatorAdmin = () => {
   };
 
   const handleDeleteSection = () => {
-    console.log("delete section", sectionId);
     calcFetcher.submit(
       {
         action: Action.deleteSection,
@@ -279,6 +349,30 @@ const CalculatorAdmin = () => {
   const handleDeleteLogicField = (id: string) => {
     calcFetcher.submit(
       { action: Action.deleteLogicField, data: { id } },
+      { method: "post", encType: "application/json" }
+    );
+  };
+
+  const handleSavePriceRangeVariable = (field: InputFieldType) => {
+    calcFetcher.submit(
+      {
+        action: Action.createPriceRangeVariableField,
+        data: { ...field, sectionId: activeTab },
+      },
+      { method: "post", encType: "application/json" }
+    );
+  };
+
+  const handleUpdatePriceRangeVariableField = (field: InputFieldType) => {
+    calcFetcher.submit(
+      { action: Action.updatePriceRangeVariableField, data: field },
+      { method: "post", encType: "application/json" }
+    );
+  };
+
+  const handleDeletePriceRangeVariableField = (id: string) => {
+    calcFetcher.submit(
+      { action: Action.deletePriceRangeVariableField, data: { id } },
       { method: "post", encType: "application/json" }
     );
   };
@@ -360,6 +454,12 @@ const CalculatorAdmin = () => {
             sectionId={activeTab}
             handleDeleteField={handleDeleteField}
             handleUpdateField={handleUpdateField}
+            handleUpdateMilesVariableField={handleUpdateMilesVariableField}
+            handleDeleteMilesVariableField={handleDeleteMilesVariableField}
+            updatePriceRangeVariableField={handleUpdatePriceRangeVariableField}
+            handleDeletePriceRangeVariableField={
+              handleDeletePriceRangeVariableField
+            }
           />
 
           {displayResult && (
@@ -372,8 +472,9 @@ const CalculatorAdmin = () => {
           {/* Save Button */}
           <div className="mt-8 flex gap-x-3 items-end justify-end">
             <AddVariableField
-              availableFields={fields as InputFieldType[]}
-              onSave={() => {}}
+              availableFields={fields as unknown as InputFieldType[]}
+              onSaveMiles={handleSaveMilesVariable}
+              onSavePriceRange={handleSavePriceRangeVariable}
               trigger={
                 <Variable className="w-4 h-4 cursor-pointer text-gray-600 hover:text-gray-700" />
               }

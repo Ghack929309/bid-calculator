@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
-import { FieldType, InputFieldType, OptionsField } from "~/lib/types";
+import { FieldType, InputFieldType } from "~/lib/types";
 import { getInitialFieldState } from "~/lib/utils";
 import { v4 as uuidv4 } from "uuid";
 
@@ -103,8 +103,8 @@ function OptionsManager({
   options,
   onChange,
 }: {
-  options: OptionsField["options"];
-  onChange: (options: OptionsField["options"]) => void;
+  options: InputFieldType["options"];
+  onChange: (options: InputFieldType["options"]) => void;
 }) {
   const [newOption, setNewOption] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);

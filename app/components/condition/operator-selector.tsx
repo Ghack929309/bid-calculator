@@ -1,4 +1,4 @@
-import { ConditionOperators, ConditionType } from "~/lib/types";
+import { ConditionOperators, ConditionalCalculationType } from "~/lib/types";
 import {
   Select,
   SelectContent,
@@ -8,8 +8,8 @@ import {
 } from "../ui/select";
 
 type OperatorSelectorProps = {
-  condition: ConditionType;
-  onUpdate: (updates: Partial<ConditionType>) => void;
+  condition: ConditionalCalculationType;
+  onUpdate: (updates: Partial<ConditionalCalculationType>) => void;
 };
 
 export const OperatorSelector = ({
@@ -17,8 +17,10 @@ export const OperatorSelector = ({
   onUpdate,
 }: OperatorSelectorProps) => (
   <Select
-    value={condition.operator}
-    onValueChange={(value) => onUpdate({ operator: value })}
+    value={condition.comparison}
+    onValueChange={(value) =>
+      onUpdate({ comparison: value as ConditionOperators })
+    }
   >
     <SelectTrigger>
       <SelectValue placeholder="Select operator" />

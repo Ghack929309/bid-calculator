@@ -56,37 +56,6 @@ class CalculationService {
     return newCalculation as SimpleCalculationType;
   }
 
-  // createConditionalCalculation({
-  //   logicId,
-  // }: {
-  //   logicId: string;
-  // }): ConditionalCalculationType {
-  //   return {
-  //     id: uuidv4(),
-  //     logicId,
-  //     type: "conditional",
-  //     existingLogic: {
-  //       id: "",
-  //       name: "",
-  //     },
-  //     conditions: [],
-  //     thenCalculations: this.createSimpleCalculation({ logicId }),
-  //     elseCalculations: this.createSimpleCalculation({ logicId }),
-  //   };
-  // }
-
-  // createDefaultCondition(): ConditionType {
-  //   return {
-  //     id: uuidv4(),
-  //     field: "",
-  //     type: "condition",
-  //     comparison: "",
-  //     value: "",
-  //     value2: "",
-  //     logicalOperator: "and",
-  //   };
-  // }
-
   addCalculation({
     calculations,
     logicId,
@@ -127,27 +96,6 @@ class CalculationService {
       return calc;
     });
   }
-
-  // addCondition({
-  //   calculations,
-  //   calculationId,
-  // }: {
-  //   calculations: (SimpleCalculationType | ConditionalCalculationType)[];
-  //   calculationId: string;
-  // }) {
-  //   return calculations.map((calc) => {
-  //     if (calc.id === calculationId && "conditions" in calc) {
-  //       return {
-  //         ...calc,
-  //         conditions: [
-  //           ...calc.conditions,
-  //           { ...this.createDefaultCondition(), id: uuidv4() },
-  //         ],
-  //       };
-  //     }
-  //     return calc;
-  //   });
-  // }
 
   updateCalculationOperations({
     calculations,

@@ -10,7 +10,7 @@ import {
 } from "~/components/ui/card";
 import {
   CalculationOperation,
-  ConditionType,
+  ConditionalCalculationType,
   InputFieldType,
   LogicFieldType,
   SimpleCalculationType,
@@ -40,13 +40,16 @@ export function AddLogic({
   const [calculations, setCalculations] =
     useState<SimpleCalculationType[]>(initialCalculations);
 
-  const [condition, setCondition] = useState<ConditionType | null>(null);
+  const [condition, setCondition] = useState<ConditionalCalculationType | null>(
+    null
+  );
 
   const addCondition = () => {
-    setCondition(createInitialCondition());
+    const initialCondition = createInitialCondition();
+    setCondition({ ...initialCondition, logicId });
   };
 
-  const updateCondition = (updates: Partial<ConditionType>) => {
+  const updateCondition = (updates: Partial<ConditionalCalculationType>) => {
     setCondition(condition ? { ...condition, ...updates } : null);
   };
 
@@ -115,7 +118,8 @@ export function AddLogic({
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <SimpleCalculation
-                calculation={selectedCalculation}
+                calculationId={selectedCalculation?.id as string}
+                operations={selectedCalculation?.operations}
                 fields={fields}
                 logicFields={logicalField}
                 addMoreOperation={addOperation}
@@ -124,7 +128,7 @@ export function AddLogic({
               />
               <Render when={condition !== null}>
                 <ConditionalCalculation
-                  condition={condition as ConditionType}
+                  condition={condition as ConditionalCalculationType}
                   fields={fields}
                   logicFields={logicalField}
                   onUpdate={updateCondition}

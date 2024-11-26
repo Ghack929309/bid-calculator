@@ -6,53 +6,31 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { Input } from "./ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import { Button } from "./ui/button";
 import { InputFieldType } from "~/lib/types";
 import { Label } from "./ui/label";
-import { Switch } from "./ui/switch";
 import { Render } from "./render";
 import { MilesVariable } from "./miles-variable";
 import { PriceRangeVariable } from "./price-range-variable";
 
-// Define types for our price range
-interface PriceRange {
-  min: number;
-  max: number;
-  value: number;
-}
-
-interface CsvColumnMapping {
-  min: string;
-  max: string;
-  value: string;
-}
-
 export const AddVariableField = ({
   trigger,
+  onSavePriceRange,
+  onSaveMiles,
   availableFields,
 }: {
   trigger: React.ReactNode;
-  availableFields: InputFieldType[];
-  onSave: (fieldConfig: {
-    name: string;
-    baseField: string;
-    priceRanges: PriceRange[];
-  }) => void;
+  onSavePriceRange: (field: InputFieldType) => void;
+  onSaveMiles: (field: InputFieldType) => void;
+  availableFields?: InputFieldType[];
 }) => {
   const [variableType, setVariableType] = useState("miles");
-  const [fieldName, setFieldName] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger onClick={() => setIsOpen(true)} asChild>
+        {trigger}
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Variable Field</DialogTitle>
@@ -81,13 +59,25 @@ export const AddVariableField = ({
             <Label htmlFor="price-range">Price Range</Label>
           </div>
         </div>
-        <Render when={variableType === "miles"}>
-          <MilesVariable availableFields={availableFields} onSave={() => {}} />
+        <Render when={variableType === "miles" && isOpen}>
+          <MilesVariable
+            fields={availableFields?.filter((field) => field.type !== "miles")}
+            onSave={(field) => {
+              onSaveMiles(field);
+              setIsOpen(false);
+            }}
+          />
         </Render>
-        <Render when={variableType === "price-range"}>
+        <Render when={variableType === "price-range" && isOpen}>
           <PriceRangeVariable
-            availableFields={availableFields}
-            onSave={() => {}}
+            fields={
+              availableFields?.filter((field) => field.type !== "priceRange") ??
+              []
+            }
+            onSave={(field) => {
+              onSavePriceRange(field);
+              setIsOpen(false);
+            }}
           />
         </Render>
       </DialogContent>

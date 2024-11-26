@@ -21,9 +21,13 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import type { InputFieldType } from "~/lib/types";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Variable } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { AddField } from "./add-field";
+import { Dialog, DialogContent } from "./ui/dialog";
+import { MilesVariable } from "./miles-variable";
+import { useState } from "react";
+import { PriceRangeVariable } from "./price-range-variable";
 
 interface DynamicFormProps {
   fields: InputFieldType[];
@@ -32,6 +36,10 @@ interface DynamicFormProps {
   isEditing?: boolean;
   handleUpdateField?: (field: InputFieldType) => void;
   handleDeleteField?: (field: InputFieldType) => void;
+  handleUpdateMilesVariableField?: (field: InputFieldType) => void;
+  handleDeleteMilesVariableField?: (id: string) => void;
+  updatePriceRangeVariableField?: (field: InputFieldType) => void;
+  handleDeletePriceRangeVariableField?: (id: string) => void;
 }
 
 export function DynamicForm({
@@ -41,7 +49,16 @@ export function DynamicForm({
   isEditing = false,
   handleDeleteField,
   handleUpdateField,
+  handleUpdateMilesVariableField,
+  handleDeleteMilesVariableField,
+  updatePriceRangeVariableField,
+  handleDeletePriceRangeVariableField,
 }: DynamicFormProps) {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedField, setSelectedField] = useState<InputFieldType | null>(
+    null
+  );
+
   const formSchema = z.object(
     fields.reduce((acc, field) => {
       let validator = z.string();
@@ -80,10 +97,8 @@ export function DynamicForm({
   const handleFormSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       await onSubmit(data);
-      setDisplayResult(true);
     } catch (error) {
       console.error("Form submission error:", error);
-      setDisplayResult(false);
     }
   };
 
@@ -109,7 +124,10 @@ export function DynamicForm({
                 <div className="flex-1">
                   <RenderField field={field} form={form} />
                 </div>
-                {isEditing && (
+                {isEditing &&
+                ["text", "number", "select", "checkbox"].includes(
+                  field.type
+                ) ? (
                   <div className="flex items-center gap-2 mb-2">
                     <AddField
                       trigger={
@@ -128,6 +146,60 @@ export function DynamicForm({
                       className="w-4 h-4 cursor-pointer text-red-500"
                     />
                   </div>
+                ) : (
+                  <div className="flex items-center gap-2 mb-2">
+                    <Pencil
+                      onClick={() => {
+                        setSelectedField(field);
+                        setIsEditModalOpen(true);
+                      }}
+                      className="w-4 h-4 cursor-pointer text-blue-500"
+                    />
+                    {isEditModalOpen && selectedField && (
+                      <Dialog
+                        open={isEditModalOpen}
+                        onOpenChange={setIsEditModalOpen}
+                      >
+                        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                          {selectedField.type === "miles" && isEditModalOpen ? (
+                            <MilesVariable
+                              fields={fields}
+                              updateMilesVariableField={(field) => {
+                                handleUpdateMilesVariableField?.(field);
+                                setIsEditModalOpen(false);
+                              }}
+                              initialData={selectedField}
+                            />
+                          ) : selectedField.type === "priceRange" &&
+                            isEditModalOpen ? (
+                            <PriceRangeVariable
+                              fields={
+                                fields?.filter(
+                                  (field) => field.type !== "priceRange"
+                                ) ?? []
+                              }
+                              updateField={(field) => {
+                                updatePriceRangeVariableField?.(field);
+                                setIsEditModalOpen(false);
+                              }}
+                              initialData={selectedField}
+                            />
+                          ) : null}
+                        </DialogContent>
+                      </Dialog>
+                    )}
+
+                    <Trash2
+                      onClick={() => {
+                        if (field.type === "miles") {
+                          handleDeleteMilesVariableField?.(field.id);
+                        } else {
+                          handleDeletePriceRangeVariableField?.(field.id);
+                        }
+                      }}
+                      className="w-4 h-4 cursor-pointer text-red-500"
+                    />
+                  </div>
                 )}
               </div>
             ))}
@@ -143,6 +215,17 @@ export function DynamicForm({
 }
 const RenderField = ({ field, form }: { field: InputFieldType; form: any }) => {
   switch (field.type) {
+    case "miles":
+    case "priceRange":
+      return (
+        <div className="py-2">
+          <FormLabel className="capitalize flex items-center gap-2">
+            <Variable className="w-4 h-4" />
+            <span>{field.name}</span>
+          </FormLabel>
+        </div>
+      );
+
     case "text":
     case "number":
       return (

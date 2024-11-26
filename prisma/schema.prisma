@@ -24,7 +24,9 @@ model Field {
   type        String // "number" | "text" | "select" | "checkbox"
   required    Boolean  @default(false)
   enabled     Boolean  @default(true)
+  baseFieldId String?
   options     String?
+  entries     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   section     Section  @relation("SectionToFields", fields: [sectionId], references: [id], onDelete: Cascade)
@@ -46,8 +48,9 @@ model Calculation {
   id         String     @id @default(uuid())
   logicId    String
   type       String // "simple" | "conditional"
+  comparison String? // "equals" | "notEquals" | "greaterThan" | etc.
+  logicField LogicField @relation("LogicFieldToCalculations", fields: [logicId], references: [id], onDelete: Cascade)
+  operations String     @default("[]") // JSON string for operations
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
-  logicField LogicField @relation("LogicFieldToCalculations", fields: [logicId], references: [id], onDelete: Cascade)
-  operations String     @default("[]")
 }

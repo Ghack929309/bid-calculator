@@ -5,6 +5,9 @@ import {
   CalculationValue,
   InputFieldType,
   LogicFieldType,
+  ConditionalCalculationType,
+  ConditionalOperation,
+  CalculationType,
 } from "~/lib/types";
 
 class DatabaseService {
@@ -41,10 +44,11 @@ class DatabaseService {
   }
   // Field Methods
   async createField(field: InputFieldType) {
-    const { options, ...fieldData } = field;
+    const { options, entries, ...fieldData } = field;
     return this.prisma.field.create({
       data: {
         ...fieldData,
+        entries: entries ? JSON.stringify(entries) : undefined,
         options: options ? JSON.stringify(options) : undefined,
       },
     });
@@ -62,12 +66,13 @@ class DatabaseService {
   }
 
   async updateField(field: InputFieldType) {
-    const { options, ...fieldData } = field;
+    const { options, entries, ...fieldData } = field;
     return this.prisma.field.update({
       where: { id: field.id },
       data: {
         ...fieldData,
         options: options ? JSON.stringify(options) : undefined,
+        entries: entries ? JSON.stringify(entries) : undefined,
       },
     });
   }
@@ -91,6 +96,67 @@ class DatabaseService {
   }
 
   async deleteField(id: string) {
+    return this.prisma.field.delete({
+      where: { id },
+    });
+  }
+
+  async createMilesVariableField(field: InputFieldType) {
+    const { entries, options, ...fieldData } = field;
+    return this.prisma.field.create({
+      data: {
+        ...fieldData,
+        options: options ? JSON.stringify(options) : undefined,
+        entries: JSON.stringify(entries),
+      },
+    });
+  }
+
+  async updateMilesVariableField(field: InputFieldType) {
+    console.log("field from db service", field);
+    const { entries, options, ...fieldData } = field;
+    return this.prisma.field.update({
+      where: { id: field.id },
+      data: {
+        ...fieldData,
+        options: options ? JSON.stringify(options) : undefined,
+        entries: JSON.stringify(entries),
+      },
+    });
+  }
+
+  async deleteMilesVariableField(id: string) {
+    console.log("delete miles variable field", id);
+    return this.prisma.field.delete({
+      where: { id },
+    });
+  }
+
+  async createPriceRangeVariableField(field: InputFieldType) {
+    console.log("price range field from db service", field);
+    const { entries, options, ...fieldData } = field;
+    return this.prisma.field.create({
+      data: {
+        ...fieldData,
+        options: options ? JSON.stringify(options) : undefined,
+        entries: JSON.stringify(entries),
+      },
+    });
+  }
+
+  async updatePriceRangeVariableField(field: InputFieldType) {
+    const { entries, options, ...fieldData } = field;
+    return this.prisma.field.update({
+      where: { id: field.id },
+      data: {
+        ...fieldData,
+        options: options ? JSON.stringify(options) : undefined,
+        entries: JSON.stringify(entries),
+      },
+    });
+  }
+
+  async deletePriceRangeVariableField(id: string) {
     return this.prisma.field.delete({
       where: { id },
     });
@@ -124,15 +190,14 @@ class DatabaseService {
   }
 
   // Calculation Methods
-  async createCalculation(calculation: SimpleCalculationType) {
+  async createCalculation(
+    calculation: SimpleCalculationType | ConditionalCalculationType
+  ) {
     return this.prisma.calculation.create({
-      data: {
-        type: calculation.type,
-        logicId: calculation.logicId,
-        operations: JSON.stringify(
-          calculation.operations.map((op) => this.mapOperation(op))
-        ),
-      },
+      data:
+        calculation.type === CalculationType.SIMPLE
+          ? this.mapSimpleCalculation(calculation)
+          : this.mapConditionalCalculation(calculation),
     });
   }
 
@@ -140,22 +205,48 @@ class DatabaseService {
     const calculation = await this.prisma.calculation.findFirst({
       where: { logicId },
     });
+
+    if (!calculation) return null;
+
+    const parsedOperations = JSON.parse(calculation?.operations || "[]");
+
+    if (calculation.type === CalculationType.CONDITIONAL) {
+      return {
+        ...calculation,
+        operations: {
+          then: parsedOperations.then?.map((op: CalculationOperation) => ({
+            ...op,
+            value1: op.value1,
+            value2: op?.value2,
+          })),
+          else: parsedOperations.else?.map((op: CalculationOperation) => ({
+            ...op,
+            value1: op.value1,
+            value2: op?.value2,
+          })),
+        },
+      };
+    }
+
     return {
       ...calculation,
-      operations: JSON.parse(calculation?.operations || "[]").map((op: any) => {
-        return {
-          ...op,
-          value1: op.value1,
-          value2: op?.value2,
-        };
-      }),
+      operations: parsedOperations.map((op: CalculationOperation) => ({
+        ...op,
+        value1: op.value1,
+        value2: op?.value2,
+      })),
     };
   }
 
-  async updateCalculation(calculation: SimpleCalculationType) {
+  async updateCalculation(
+    calculation: SimpleCalculationType | ConditionalCalculationType
+  ) {
     return this.prisma.calculation.update({
       where: { id: calculation.id },
-      data: this.mapCalculation(calculation),
+      data:
+        calculation.type === CalculationType.SIMPLE
+          ? this.mapSimpleCalculation(calculation)
+          : this.mapConditionalCalculation(calculation),
     });
   }
 
@@ -167,16 +258,36 @@ class DatabaseService {
 
   async getCalculations() {
     const calculations = await this.prisma.calculation.findMany({});
-    return calculations.map((calc) => ({
-      ...calc,
-      operations: JSON.parse(calc?.operations || "[]").map((op: any) => {
+    return calculations.map((calc) => {
+      const parsedOperations = JSON.parse(calc?.operations || "[]");
+
+      if (calc.type === CalculationType.CONDITIONAL) {
         return {
+          ...calc,
+          operations: {
+            then: parsedOperations.then?.map((op: CalculationOperation) => ({
+              ...op,
+              value1: op.value1,
+              value2: op?.value2,
+            })),
+            else: parsedOperations.else?.map((op: CalculationOperation) => ({
+              ...op,
+              value1: op.value1,
+              value2: op?.value2,
+            })),
+          },
+        };
+      }
+
+      return {
+        ...calc,
+        operations: parsedOperations.map((op: CalculationOperation) => ({
           ...op,
           value1: op.value1,
           value2: op?.value2,
-        };
-      }),
-    }));
+        })),
+      };
+    });
   }
 
   async getSections() {
@@ -196,31 +307,21 @@ class DatabaseService {
   }
 
   // Helper methods
-  private mapOperation(operation: CalculationOperation) {
-    return {
-      id: operation.id,
-      operator: operation.operator,
-      value1: operation.value1,
-      value2: operation.value2,
-    };
-  }
 
-  private mapCalculationValue(value: CalculationValue) {
-    return {
-      type: value.type,
-      value: value.value,
-      fieldId: value.type === "field" ? value.fieldId : undefined,
-      logicId: value.type === "logic" ? value.fieldId : undefined,
-    };
-  }
-
-  private mapCalculation(calculation: SimpleCalculationType) {
+  private mapConditionalCalculation(calculation: ConditionalCalculationType) {
     return {
       type: calculation.type,
       logicId: calculation.logicId,
-      operations: JSON.stringify(
-        calculation.operations.map((op) => this.mapOperation(op))
-      ),
+      comparison: calculation.comparison,
+      operations: JSON.stringify(calculation.operations),
+    };
+  }
+
+  private mapSimpleCalculation(calculation: SimpleCalculationType) {
+    return {
+      type: calculation.type,
+      logicId: calculation.logicId,
+      operations: JSON.stringify(calculation.operations),
     };
   }
 }

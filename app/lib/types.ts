@@ -5,6 +5,36 @@ export enum CalculationType {
   CONDITIONAL = "conditional",
 }
 
+export type VariableType = "priceRange" | "miles";
+
+export type PriceRangeVariable = {
+  type: "priceRange";
+  baseFieldId: string;
+  entries: {
+    min: string;
+    max: string;
+    value: string;
+  }[];
+};
+
+export type MilesVariable = {
+  type: "miles";
+  baseFieldId: string;
+  entries: {
+    state: string;
+    miles: string;
+    ratePerMiles: string;
+  }[];
+};
+
+type MultiChoiceType = {
+  type: "select" | "checkbox";
+  options: {
+    value: string;
+    id: string;
+    fieldId: string;
+  }[];
+};
 export type InputFieldType = {
   id: string;
   sectionId: string;
@@ -15,14 +45,9 @@ export type InputFieldType = {
   | {
       type: "number" | "text";
     }
-  | {
-      type: "select" | "checkbox";
-      options: {
-        value: string;
-        id: string;
-        fieldId: string;
-      }[];
-    }
+  | MultiChoiceType
+  | PriceRangeVariable
+  | MilesVariable
 );
 
 export type LogicFieldType = {
@@ -36,7 +61,19 @@ export type OperatorType =
   | "subtract"
   | "multiply"
   | "divide"
-  | "percentage";
+  | "percentage"
+  | "none";
+
+export const MathOperations: { [K in Uppercase<OperatorType>]: Lowercase<K> } =
+  {
+    ADD: "add",
+    SUBTRACT: "subtract",
+    MULTIPLY: "multiply",
+    DIVIDE: "divide",
+    PERCENTAGE: "percentage",
+    NONE: "none",
+  } as const;
+
 export type CalculationFieldType = "number" | "field" | "logic";
 
 export type CalculationValue = {
@@ -47,8 +84,14 @@ export type CalculationValue = {
 export type CalculationOperation = {
   id: string;
   operator: OperatorType;
+  nextOperator: OperatorType;
   value1: CalculationValue;
   value2?: CalculationValue;
+};
+
+export type ConditionalOperation = {
+  then: CalculationOperation[];
+  else: CalculationOperation[];
 };
 
 export type SimpleCalculationType = {
@@ -58,52 +101,29 @@ export type SimpleCalculationType = {
   operations: CalculationOperation[];
 };
 
+export type ConditionalCalculationType = {
+  id: string;
+  logicId: string;
+  type: CalculationType.CONDITIONAL;
+  comparison: ConditionOperators;
+  operations: ConditionalOperation;
+};
+
 export const FieldTypes = {
   INPUT: "input",
   LOGIC: "logic",
 } as const;
 
-export type ConditionType = {
-  id: string;
-  fieldType: typeof FieldTypes.INPUT | typeof FieldTypes.LOGIC;
-  field: string;
-  operator: string;
-  compareValueType: (typeof CompareValueTypes)[keyof typeof CompareValueTypes];
-  compareValue: string;
-  compareFieldId: string;
-  valueType: string;
-  resultType: string;
-  resultValue: string;
-  resultField: string;
-  mathOperation: string;
-  operationValue: string;
-  thenValue: string;
-  thenOperation: string;
-  thenCalculations: SimpleCalculationType;
-  elseValue: string;
-  elseOperation: string;
-  elseCalculations: SimpleCalculationType;
-};
-
-export const ConditionOperators = {
-  EQUALS: "equals",
-  GREATER_THAN: "greaterThan",
-  LESS_THAN: "lessThan",
-  GREATER_EQUAL: "greaterEqual",
-  LESS_EQUAL: "lessEqual",
-};
+export enum ConditionOperators {
+  EQUALS = "equals",
+  GREATER_THAN = "greaterThan",
+  LESS_THAN = "lessThan",
+  GREATER_EQUAL = "greaterEqual",
+  LESS_EQUAL = "lessEqual",
+}
 
 export const CompareValueTypes = {
   FIXED: "fixed",
   INPUT: "input",
   LOGIC: "logic",
 } as const;
-
-export const MathOperations = {
-  NONE: "none",
-  ADD: "add",
-  SUBTRACT: "subtract",
-  MULTIPLY: "multiply",
-  DIVIDE: "divide",
-  PERCENTAGE: "percentage",
-};

@@ -1,24 +1,21 @@
 import {
-  ConditionType,
   InputFieldType,
   LogicFieldType,
   MathOperations,
-  SimpleCalculationType,
-  CalculationOperation,
+  ConditionalCalculationType,
 } from "~/lib/types";
-import { Input } from "../ui/input";
-import { OperationSelector } from "./operation-selector";
 import { SimpleCalculation } from "../simple-calculation";
 import { CompareValueSection } from "./compare-value-section";
 import { defaultSimpleOperations } from "~/lib/constant";
 import { useState } from "react";
+import { v4 } from "uuid";
 
 type ResultSectionProps = {
-  condition: ConditionType;
+  condition: ConditionalCalculationType;
   fields: InputFieldType[];
   logicFields: LogicFieldType[];
   type: "then" | "else";
-  onUpdate: (updates: Partial<ConditionType>) => void;
+  onUpdate: (updates: Partial<ConditionalCalculationType>) => void;
 };
 
 export const ResultSection = ({
@@ -29,90 +26,113 @@ export const ResultSection = ({
   onUpdate,
 }: ResultSectionProps) => {
   const isElse = type === "else";
-  const value = isElse ? condition.elseValue : condition.thenValue;
-  const operation = isElse ? condition.elseOperation : condition.thenOperation;
+  const operations = isElse
+    ? condition.operations.else
+    : condition.operations.then;
   const initialCalculations = isElse
-    ? { ...condition.elseCalculations, operations: [defaultSimpleOperations] }
-    : { ...condition.thenCalculations, operations: [defaultSimpleOperations] };
-  const [calculation, setCalculation] = useState<SimpleCalculationType>(
-    initialCalculations as SimpleCalculationType
+    ? {
+        ...condition,
+        operations: {
+          ...condition.operations,
+          else: [defaultSimpleOperations],
+        },
+      }
+    : {
+        ...condition,
+        operations: {
+          ...condition.operations,
+          then: [defaultSimpleOperations],
+        },
+      };
+  const [calculation, setCalculation] = useState<ConditionalCalculationType>(
+    initialCalculations as ConditionalCalculationType
   );
 
   const addMoreOperation = () => {
     setCalculation((prev) => ({
       ...prev,
-      operations: [
-        ...(prev?.operations || []),
-        defaultSimpleOperations as CalculationOperation,
-      ],
+      id: v4(),
+      operations: {
+        ...prev.operations,
+        [type]: [...(prev.operations[type] || []), defaultSimpleOperations],
+      },
     }));
   };
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-center gap-4">
-        <Input
-          type="number"
-          value={value}
-          onChange={(e) =>
-            onUpdate({
-              [isElse ? "elseValue" : "thenValue"]: e.target.value,
-            })
+      <div className="flex flex-col items-center gap-4">
+        <SimpleCalculation
+          calculationId={calculation.id}
+          operations={
+            type === "then"
+              ? calculation.operations.then
+              : calculation.operations.else
           }
-          placeholder="Enter value"
-          className="flex-1"
-        />
-        <OperationSelector
-          value={operation}
-          onValueChange={(value) =>
+          addMoreOperation={addMoreOperation}
+          fields={fields}
+          logicFields={logicFields}
+          updateOperation={(operation) =>
             onUpdate({
-              [isElse ? "elseOperation" : "thenOperation"]: value,
               [isElse ? "elseCalculations" : "thenCalculations"]: {
                 ...calculation,
-                operations: calculation?.operations || [],
+                operations: [operation],
               },
             })
           }
+          onDelete={() => {
+            onUpdate({
+              [isElse ? "elseOperation" : "thenOperation"]: MathOperations.NONE,
+              [isElse ? "elseCalculations" : "thenCalculations"]: {
+                ...calculation,
+                operations: [],
+              },
+            });
+          }}
         />
       </div>
 
-      {operation !== MathOperations.NONE && (
-        <div className="border rounded-lg p-4 bg-slate-50">
-          {operation === MathOperations.PERCENTAGE ? (
-            <CompareValueSection
-              condition={condition}
-              fields={fields}
-              logicFields={logicFields}
-              onUpdate={onUpdate}
-            />
-          ) : (
-            <SimpleCalculation
-              calculation={calculation}
-              addMoreOperation={addMoreOperation}
-              fields={fields}
-              logicFields={logicFields}
-              updateOperation={(operation) =>
-                onUpdate({
-                  [isElse ? "elseCalculations" : "thenCalculations"]: {
-                    ...calculation,
-                    operations: [operation],
-                  },
-                })
-              }
-              onDelete={() => {
-                onUpdate({
-                  [isElse ? "elseOperation" : "thenOperation"]:
-                    MathOperations.NONE,
-                  [isElse ? "elseCalculations" : "thenCalculations"]: {
-                    ...calculation,
-                    operations: [],
-                  },
-                });
-              }}
-            />
-          )}
-        </div>
-      )}
+      {/* <div className="border rounded-lg p-4 bg-slate-50">
+        {operations?.[operations.length - 1]?.operator ===
+        MathOperations.PERCENTAGE ? (
+          <CompareValueSection
+            condition={condition}
+            fields={fields}
+            logicFields={logicFields}
+            onUpdate={onUpdate}
+          />
+        ) : (
+          <SimpleCalculation
+            calculationId={calculation.id}
+            operations={
+              type === "then"
+                ? calculation.operations.then
+                : calculation.operations.else
+            }
+            addMoreOperation={addMoreOperation}
+            fields={fields}
+            logicFields={logicFields}
+            updateOperation={(operation) =>
+              onUpdate({
+                [isElse ? "elseCalculations" : "thenCalculations"]: {
+                  ...calculation,
+                  operations: [operation],
+                },
+              })
+            }
+            onDelete={() => {
+              onUpdate({
+                [isElse ? "elseOperation" : "thenOperation"]:
+                  MathOperations.NONE,
+                [isElse ? "elseCalculations" : "thenCalculations"]: {
+                  ...calculation,
+                  operations: [],
+                },
+              });
+            }}
+          />
+        )}
+      </div> */}
     </div>
   );
 };

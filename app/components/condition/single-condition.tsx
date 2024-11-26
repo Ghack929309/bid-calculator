@@ -1,4 +1,8 @@
-import { ConditionType, InputFieldType, LogicFieldType } from "~/lib/types";
+import {
+  ConditionalCalculationType,
+  InputFieldType,
+  LogicFieldType,
+} from "~/lib/types";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Trash2 } from "lucide-react";
@@ -8,10 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { ResultSection } from "./result-section";
 
 type SingleConditionProps = {
-  condition: ConditionType;
+  condition: ConditionalCalculationType;
   fields: InputFieldType[];
   logicFields: LogicFieldType[];
-  onUpdate: (updates: Partial<ConditionType>) => void;
+  onUpdate: (updates: Partial<ConditionalCalculationType>) => void;
   onRemove: () => void;
 };
 
@@ -25,7 +29,7 @@ export const SingleCondition = ({
   <Card key={condition.id} className="p-4">
     <div className="grid gap-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium">Condition</h3>
+        <h3 className="text-sm font-medium">If</h3>
         <Button variant="ghost" size="sm" onClick={onRemove}>
           <Trash2 className="w-4 h-4" />
         </Button>

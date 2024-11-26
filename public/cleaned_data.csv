@@ -1,0 +1,33 @@
+State,Capital City,Approx. Distance,Rate (Per Mile),Calculated Rate
+Florida,Tallahassee,320,1.88,600
+Georgia,Atlanta,660,1.00,660
+South Carolina,Columbia,500,1.40,700
+Alabama,Montgomery,640,1.00,640
+North Carolina,Raleigh,700,1.00,750
+Tennessee,Nashville,950,1.00,950
+Kentucky,Frankfort,950,1.00,950
+Mississippi,Jackson,850,1.00,850
+Louisiana,Baton Rouge,900,1.00,900
+Delaware,Dover,1050,1.35,1417.50
+Maryland,Annapolis,1000,1.29,1290
+West Virginia,Charleston,1100,1.23,1353
+Indiana,Indianapolis,1100,1.17,1287
+Ohio,Columbus,1100,1.11,1221
+Pennsylvania,Harrisburg,1100,1.05,1155
+New Jersey,Trenton,1050,0.99,1139.50
+Arkansas,Little Rock,1100,0.96,1056
+Missouri,Jefferson City,1200,0.92,1104
+Illinois,Springfield,1200,0.88,1056
+Texas,Austin,1200,0.84,1008
+Oklahoma,Oklahoma City,1400,0.80,1120
+Nebraska,Lincoln,1500,0.85,1275
+Wisconsin,Madison,1500,0.84,1260
+Minnesota,St. Paul,1600,0.83,1328
+Colorado,Denver,1600,0.82,1312
+South Dakota,Pierre,1800,0.80,1440
+North Dakota,Bismarck,1800,0.79,1422
+New Mexico,Santa Fe,1900,0.77,1463
+Arizona,Phoenix,2000,0.76,1520
+Montana,Helena,2300,0.76,1748
+Wyoming,Cheyenne,2200,0.76,1672
+Utah,Salt Lake City,2300,0.76,1748

@@ -2,13 +2,10 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import {
   CalculationType,
-  CompareValueTypes,
   ConditionOperators,
-  ConditionType,
+  ConditionalCalculationType,
   FieldType,
-  FieldTypes,
   InputFieldType,
-  MathOperations,
 } from "./types";
 import { v4 } from "uuid";
 
@@ -40,39 +37,13 @@ export const getInitialFieldState = ({
     : { ...baseField, options: options || [] };
 };
 
-const ValueTypes = {
-  FIXED: "fixed",
-  FIELD: "field",
-};
-
-export const createInitialCondition = (): ConditionType => ({
+export const createInitialCondition = (): ConditionalCalculationType => ({
   id: v4(),
-  fieldType: FieldTypes.INPUT,
-  field: "",
-  operator: ConditionOperators.EQUALS,
-  compareValueType: CompareValueTypes.FIXED,
-  compareValue: "",
-  compareFieldId: "",
-  valueType: ValueTypes.FIXED,
-  resultType: ValueTypes.FIXED,
-  resultValue: "",
-  resultField: "",
-  mathOperation: MathOperations.NONE,
-  operationValue: "",
-  thenValue: "",
-  thenOperation: MathOperations.NONE,
-  thenCalculations: {
-    id: v4(),
-    logicId: "",
-    type: CalculationType.SIMPLE,
-    operations: [],
-  },
-  elseValue: "",
-  elseOperation: MathOperations.NONE,
-  elseCalculations: {
-    id: v4(),
-    logicId: "",
-    type: CalculationType.SIMPLE,
-    operations: [],
+  logicId: "",
+  type: CalculationType.CONDITIONAL,
+  comparison: ConditionOperators.EQUALS,
+  operations: {
+    then: [],
+    else: [],
   },
 });
