@@ -1,6 +1,6 @@
 import {
   CompareValueTypes,
-  ConditionType,
+  ConditionalCalculationType,
   InputFieldType,
   LogicFieldType,
 } from "~/lib/types";
@@ -16,83 +16,114 @@ import {
 } from "../ui/select";
 
 type CompareValueSectionProps = {
-  condition: ConditionType;
+  condition: ConditionalCalculationType["comparedValues"];
+  type: "value1" | "value2";
   fields: InputFieldType[];
   logicFields: LogicFieldType[];
-  onUpdate: (updates: Partial<ConditionType>) => void;
+  hideFixedValue?: boolean;
+  onUpdate: (updates: ConditionalCalculationType["comparedValues"]) => void;
 };
 
 export const CompareValueSection = ({
   condition,
   fields,
+  type,
   logicFields,
+  hideFixedValue = false,
   onUpdate,
-}: CompareValueSectionProps) => (
-  <div className="space-y-2">
-    <RadioGroup
-      value={condition.compareValueType}
-      onValueChange={(value) =>
-        onUpdate({
-          compareValueType:
-            value as (typeof CompareValueTypes)[keyof typeof CompareValueTypes],
-          compareValue: "",
-          compareFieldId: "",
-        })
-      }
-      className="flex items-center space-x-4"
-    >
-      <div className="flex items-center space-x-2">
-        <RadioGroupItem
-          value={CompareValueTypes.FIXED}
-          id={`fixed-${condition.id}`}
-        />
-        <Label htmlFor={`fixed-${condition.id}`}>Fixed Value</Label>
-      </div>
-      <div className="flex items-center space-x-2">
-        <RadioGroupItem
-          value={CompareValueTypes.INPUT}
-          id={`input-compare-${condition.id}`}
-        />
-        <Label htmlFor={`input-compare-${condition.id}`}>Input Field</Label>
-      </div>
-      <div className="flex items-center space-x-2">
-        <RadioGroupItem
-          value={CompareValueTypes.LOGIC}
-          id={`logic-compare-${condition.id}`}
-        />
-        <Label htmlFor={`logic-compare-${condition.id}`}>Logic Field</Label>
-      </div>
-    </RadioGroup>
+}: CompareValueSectionProps) => {
+  const handleUpdate = (updates: (typeof condition)[typeof type]) => {
+    onUpdate({
+      ...condition,
+      [type]: updates,
+    });
+  };
+  const isField = condition[type].type === CompareValueTypes.INPUT;
 
-    {condition.compareValueType === CompareValueTypes.FIXED ? (
-      <Input
-        type="number"
-        value={condition.compareValue}
-        onChange={(e) => onUpdate({ compareValue: e.target.value })}
-        placeholder="Enter value to compare"
-      />
-    ) : (
-      <Select
-        value={condition.compareFieldId}
-        onValueChange={(value) => onUpdate({ compareFieldId: value })}
+  return (
+    <div className="space-y-2">
+      <RadioGroup
+        value={condition[type].type}
+        onValueChange={(value) =>
+          handleUpdate({
+            ...condition[type],
+            type: value as (typeof CompareValueTypes)[keyof typeof CompareValueTypes],
+          })
+        }
+        className="flex items-center space-x-4"
       >
-        <SelectTrigger>
-          <SelectValue placeholder="Select field to compare" />
-        </SelectTrigger>
-        <SelectContent>
-          {condition.compareValueType === CompareValueTypes.INPUT
-            ? fields.map((field) => (
-                <SelectItem key={field.id} value={field.id}>
-                  {field.name}
-                </SelectItem>
-              ))
-            : logicFields.map((field) => (
-                <SelectItem key={field.id} value={field.id}>
-                  {field.name}
-                </SelectItem>
-              ))}
-        </SelectContent>
-      </Select>
-    )}
-  </div>
-);
+        {!hideFixedValue && (
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem
+              value={CompareValueTypes.FIXED}
+              id={`fixed-${condition[type].value}`}
+            />
+            <Label htmlFor={`fixed-${condition[type].value}`}>Number</Label>
+          </div>
+        )}
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem
+            value={CompareValueTypes.INPUT}
+            id={`input-compare-${condition[type].value}`}
+          />
+          <Label htmlFor={`input-compare-${condition[type].value}`}>
+            Field
+          </Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem
+            value={CompareValueTypes.LOGIC}
+            id={`logic-compare-${condition[type].value}`}
+          />
+          <Label htmlFor={`logic-compare-${condition[type].value}`}>
+            Logic
+          </Label>
+        </div>
+      </RadioGroup>
+
+      {!hideFixedValue && condition[type].type === CompareValueTypes.FIXED ? (
+        <Input
+          type="number"
+          value={condition[type].value}
+          onChange={(e) =>
+            handleUpdate({
+              ...condition[type],
+              value: e.target.value,
+            })
+          }
+          placeholder="Enter value to compare"
+        />
+      ) : (
+        <Select
+          value={
+            (isField ? condition[type].fieldId : condition[type].logicId) || ""
+          }
+          onValueChange={(value) => {
+            const valueType = isField ? "fieldId" : "logicId";
+            handleUpdate({
+              ...condition[type],
+              [valueType]: value,
+            });
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select field to compare" />
+          </SelectTrigger>
+          <SelectContent>
+            {condition[type].type === CompareValueTypes.INPUT
+              ? fields.map((field) => (
+                  <SelectItem key={field.id} value={field.id}>
+                    {field.name}
+                  </SelectItem>
+                ))
+              : logicFields.map((field) => (
+                  <SelectItem key={field.id} value={field.id}>
+                    {field.name}
+                  </SelectItem>
+                ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  );
+};

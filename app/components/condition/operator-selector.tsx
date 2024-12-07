@@ -8,19 +8,17 @@ import {
 } from "../ui/select";
 
 type OperatorSelectorProps = {
-  condition: ConditionalCalculationType;
-  onUpdate: (updates: Partial<ConditionalCalculationType>) => void;
+  comparator: ConditionalCalculationType["comparator"];
+  onUpdate: (updates: ConditionOperators) => void;
 };
 
 export const OperatorSelector = ({
-  condition,
+  comparator,
   onUpdate,
 }: OperatorSelectorProps) => (
   <Select
-    value={condition.comparison}
-    onValueChange={(value) =>
-      onUpdate({ comparison: value as ConditionOperators })
-    }
+    value={comparator}
+    onValueChange={(value) => onUpdate(value as ConditionOperators)}
   >
     <SelectTrigger>
       <SelectValue placeholder="Select operator" />

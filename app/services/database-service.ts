@@ -264,6 +264,7 @@ class DatabaseService {
       if (calc.type === CalculationType.CONDITIONAL) {
         return {
           ...calc,
+          comparedValues: JSON.parse(calc?.comparedValues || "{}"),
           operations: {
             then: parsedOperations.then?.map((op: CalculationOperation) => ({
               ...op,
@@ -309,12 +310,15 @@ class DatabaseService {
   // Helper methods
 
   private mapConditionalCalculation(calculation: ConditionalCalculationType) {
-    return {
+    const mapped = {
       type: calculation.type,
       logicId: calculation.logicId,
-      comparison: calculation.comparison,
+      comparator: calculation.comparator,
+      comparedValues: JSON.stringify(calculation.comparedValues),
       operations: JSON.stringify(calculation.operations),
     };
+    console.log("mapped", mapped);
+    return mapped;
   }
 
   private mapSimpleCalculation(calculation: SimpleCalculationType) {

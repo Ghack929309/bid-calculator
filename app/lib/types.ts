@@ -79,6 +79,7 @@ export type CalculationFieldType = "number" | "field" | "logic";
 export type CalculationValue = {
   type: CalculationFieldType;
   fieldId: string | null;
+  logicId: string | null;
   value: string;
 };
 export type CalculationOperation = {
@@ -89,11 +90,6 @@ export type CalculationOperation = {
   value2?: CalculationValue;
 };
 
-export type ConditionalOperation = {
-  then: CalculationOperation[];
-  else: CalculationOperation[];
-};
-
 export type SimpleCalculationType = {
   id: string;
   logicId: string;
@@ -101,11 +97,20 @@ export type SimpleCalculationType = {
   operations: CalculationOperation[];
 };
 
+export type ConditionalOperation = {
+  then: CalculationOperation[];
+  else: CalculationOperation[];
+};
+
 export type ConditionalCalculationType = {
   id: string;
   logicId: string;
   type: CalculationType.CONDITIONAL;
-  comparison: ConditionOperators;
+  comparator: ConditionOperators;
+  comparedValues: {
+    value1: CalculationValue;
+    value2: CalculationValue;
+  };
   operations: ConditionalOperation;
 };
 
@@ -123,7 +128,7 @@ export enum ConditionOperators {
 }
 
 export const CompareValueTypes = {
-  FIXED: "fixed",
-  INPUT: "input",
+  FIXED: "number",
+  INPUT: "field",
   LOGIC: "logic",
 } as const;

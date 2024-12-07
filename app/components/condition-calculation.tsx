@@ -5,11 +5,11 @@ import {
   LogicFieldType,
 } from "~/lib/types";
 import { SingleCondition } from "./condition/single-condition";
+import { useCalculator } from "~/lib/calculator-context";
 
 type ConditionalCalculationProps = {
   fields: InputFieldType[];
   logicFields: LogicFieldType[];
-  condition: ConditionalCalculationType;
   onUpdate: (updates: Partial<ConditionalCalculationType>) => void;
   onRemove: () => void;
 };
@@ -17,10 +17,11 @@ type ConditionalCalculationProps = {
 export const ConditionalCalculation = ({
   fields,
   logicFields,
-  condition,
+
   onUpdate,
   onRemove,
 }: ConditionalCalculationProps) => {
+  const { condition } = useCalculator();
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>

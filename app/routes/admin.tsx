@@ -24,6 +24,7 @@ import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
 import { calculationService } from "~/services/calculation-service";
 import { Result } from "~/components/result";
 import { AddVariableField } from "~/components/add-variable-field";
+import { CalculatorProvider } from "~/lib/calculator-context";
 
 export enum Action {
   createSection = "createSection",
@@ -165,15 +166,15 @@ export async function action({ request }: ActionFunctionArgs) {
         const isExist = await db.getCalculationByLogicId(data.logicId);
         console.log("isExist", isExist);
         if (isExist?.id) {
-          return json({
+          return {
             error: null,
             data: await db.updateCalculation(data),
-          });
+          };
         }
-        return json({
+        return {
           error: null,
           data: await db.createCalculation(data),
-        });
+        };
       }
       case Action.deleteCalculation: {
         return json({
@@ -416,7 +417,7 @@ const CalculatorAdmin = () => {
       throw error;
     }
   };
-
+  console.log("calculations from admin", calculations);
   return (
     <div className="max-w-7xl mx-auto p-6">
       <section>
@@ -512,40 +513,37 @@ const CalculatorAdmin = () => {
           <p className="text-gray-600 mt-2">Manage logic for each field</p>
         </div>
         <div className="flex flex-col gap-y-2">
-          {logicFields?.map((logic: any) => (
-            <div key={logic.id} className="flex items-center justify-between">
-              <p>{logic.name}</p>
-              <div className="flex items-center space-x-2">
-                <CreateField
-                  trigger={
-                    <Pencil className="w-4 h-4 cursor-pointer text-blue-600" />
-                  }
-                  id={logic.id}
-                  name={logic.name}
-                  handleAddField={handleAddLogicalField}
-                  handleUpdateField={handleUpdateLogicalField}
-                />
-                <AddLogic
-                  logicId={logic.id}
-                  fields={fields as InputFieldType[]}
-                  logicalField={logicFields as LogicFieldType[]}
-                  initialCalculations={
-                    calculations.filter(
-                      (cal) => cal.logicId === logic.id
-                    ) as SimpleCalculationType[]
-                  }
-                />
-                <Trash2
-                  onClick={() => handleDeleteLogicField(logic.id)}
-                  className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-700"
-                />
+          <CalculatorProvider logicId={activeTab}>
+            {logicFields?.map((logic: any) => (
+              <div key={logic.id} className="flex items-center justify-between">
+                <p>{logic.name}</p>
+                <div className="flex items-center space-x-2">
+                  <CreateField
+                    trigger={
+                      <Pencil className="w-4 h-4 cursor-pointer text-blue-600" />
+                    }
+                    id={logic.id}
+                    name={logic.name}
+                    handleAddField={handleAddLogicalField}
+                    handleUpdateField={handleUpdateLogicalField}
+                  />
+                  <AddLogic
+                    logicId={logic.id}
+                    fields={fields as InputFieldType[]}
+                    logicalField={logicFields as LogicFieldType[]}
+                  />
+                  <Trash2
+                    onClick={() => handleDeleteLogicField(logic.id)}
+                    className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-700"
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-          <CreateField
-            handleAddField={handleAddLogicalField}
-            handleUpdateField={handleUpdateLogicalField}
-          />
+            ))}
+            <CreateField
+              handleAddField={handleAddLogicalField}
+              handleUpdateField={handleUpdateLogicalField}
+            />
+          </CalculatorProvider>
         </div>
       </section>
     </div>

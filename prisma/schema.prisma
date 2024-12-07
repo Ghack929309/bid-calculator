@@ -45,12 +45,13 @@ model LogicField {
 }
 
 model Calculation {
-  id         String     @id @default(uuid())
-  logicId    String
-  type       String // "simple" | "conditional"
-  comparison String? // "equals" | "notEquals" | "greaterThan" | etc.
-  logicField LogicField @relation("LogicFieldToCalculations", fields: [logicId], references: [id], onDelete: Cascade)
-  operations String     @default("[]") // JSON string for operations
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id             String     @id @default(uuid())
+  logicId        String
+  type           String // "simple" | "conditional"
+  comparator     String? // "equals" | "notEquals" | "greaterThan" | etc.
+  comparedValues String? // JSON string for compared values
+  logicField     LogicField @relation("LogicFieldToCalculations", fields: [logicId], references: [id], onDelete: Cascade)
+  operations     String     @default("[]") // JSON string for operations
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 }

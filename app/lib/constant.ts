@@ -1,4 +1,7 @@
-export const operations = [
+import { v4 } from "uuid";
+import { CalculationOperation, ConditionalCalculationType } from "./types";
+
+export const OperationTypes = [
   { value: "add", label: "Add (+)" },
   { value: "subtract", label: "Subtract (-)" },
   { value: "multiply", label: "Multiply (×)" },
@@ -19,19 +22,36 @@ export const logicalOperators = [
   { value: "or", label: "OR" },
 ];
 
-export const defaultSimpleOperations = {
-  id: "",
+export const defaultSimpleOperations: CalculationOperation = {
+  id: v4(),
   operator: "add",
   nextOperator: "none",
-  section: "",
   value1: {
     type: "field",
-    fieldId: "",
+    fieldId: null,
+    logicId: null,
     value: "",
   },
   value2: {
     type: "field",
-    fieldId: "",
+    fieldId: null,
+    logicId: null,
     value: "",
   },
 };
+
+export const defaultConditionalComparator: ConditionalCalculationType["comparedValues"] =
+  {
+    value1: {
+      type: "field",
+      fieldId: null,
+      logicId: null,
+      value: "",
+    },
+    value2: {
+      type: "number",
+      fieldId: null,
+      logicId: null,
+      value: "",
+    },
+  };

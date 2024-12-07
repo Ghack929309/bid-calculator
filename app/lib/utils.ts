@@ -8,6 +8,10 @@ import {
   InputFieldType,
 } from "./types";
 import { v4 } from "uuid";
+import {
+  defaultConditionalComparator,
+  defaultSimpleOperations,
+} from "./constant";
 
 export const isBrowser = typeof window !== "undefined";
 
@@ -41,9 +45,10 @@ export const createInitialCondition = (): ConditionalCalculationType => ({
   id: v4(),
   logicId: "",
   type: CalculationType.CONDITIONAL,
-  comparison: ConditionOperators.EQUALS,
+  comparator: ConditionOperators.EQUALS,
   operations: {
-    then: [],
-    else: [],
+    then: [defaultSimpleOperations],
+    else: [defaultSimpleOperations],
   },
+  comparedValues: defaultConditionalComparator,
 });
