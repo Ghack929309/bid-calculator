@@ -8,13 +8,7 @@ import {
   Variable,
 } from "lucide-react";
 import { AddLogic } from "~/components/add-logic";
-import {
-  CalculationType,
-  ConditionalCalculationType,
-  InputFieldType,
-  LogicFieldType,
-  SimpleCalculationType,
-} from "~/lib/types";
+import { InputFieldType, LogicFieldType } from "~/lib/types";
 import { AddField } from "~/components/add-field";
 import { DynamicForm } from "~/components/dynamic-form";
 import { getInitialFieldState } from "~/lib/utils";

@@ -2,11 +2,9 @@ import { PrismaClient } from "@prisma/client";
 import {
   SimpleCalculationType,
   CalculationOperation,
-  CalculationValue,
   InputFieldType,
   LogicFieldType,
   ConditionalCalculationType,
-  ConditionalOperation,
   CalculationType,
 } from "~/lib/types";
 
@@ -42,6 +40,7 @@ class DatabaseService {
       data: { isPublished: !isPublished },
     });
   }
+
   // Field Methods
   async createField(field: InputFieldType) {
     const { options, entries, ...fieldData } = field;
@@ -51,6 +50,19 @@ class DatabaseService {
         entries: entries ? JSON.stringify(entries) : undefined,
         options: options ? JSON.stringify(options) : undefined,
       },
+    });
+  }
+
+  async getFieldsAndSections() {
+    return await this.prisma.section.findMany({
+      where: { isPublished: true },
+      include: {
+        fields: {
+          where: { enabled: true },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+      orderBy: { createdAt: "asc" },
     });
   }
 
@@ -106,6 +118,7 @@ class DatabaseService {
     return this.prisma.field.create({
       data: {
         ...fieldData,
+        isHidden: true,
         options: options ? JSON.stringify(options) : undefined,
         entries: JSON.stringify(entries),
       },
@@ -138,6 +151,7 @@ class DatabaseService {
     return this.prisma.field.create({
       data: {
         ...fieldData,
+        isHidden: true,
         options: options ? JSON.stringify(options) : undefined,
         entries: JSON.stringify(entries),
       },

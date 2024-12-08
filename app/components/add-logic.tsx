@@ -129,7 +129,13 @@ export function AddLogic({
                 Add Conditional Calculation
               </Button>
             </div>
-            <Button onClick={saveCalculations} variant="default">
+            <Button
+              onClick={() => {
+                saveCalculations();
+                close();
+              }}
+              variant="default"
+            >
               Save
             </Button>
           </CardContent>

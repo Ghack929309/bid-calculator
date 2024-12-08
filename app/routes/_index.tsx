@@ -1,77 +1,231 @@
-import React, { useState, useEffect } from "react";
-import { Calculator, DollarSign, Car, MapPin, Ship } from "lucide-react";
+import { useState } from "react";
+import { useLoaderData } from "@remix-run/react";
+import { db } from "~/services/database-service";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Label } from "~/components/ui/label";
+import { Input } from "~/components/ui/input";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Button } from "~/components/ui/button";
+import { z } from "zod";
+// import { useToast } from "~/components/ui/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 
-const VehicleCalculator = () => {
-  const [formData, setFormData] = useState({
-    purchaseType: "regular", // regular, copart, iaai
-    vehicleType: "car", // car, truck, boat, heavyEquipment, atv
-    engineType: "gasoline", // gasoline, hybrid, electric
-    state: "Florida",
-    destinationIsland: "Nassau",
-    finalPrice: "",
-    inspectionRequired: false,
-    isJapanImport: false,
-  });
+export async function loader() {
+  const sections = await db.getFieldsAndSections();
+  return { sections };
+}
 
-  const [summary, setSummary] = useState({
-    totalLandedCost: 0,
-    totalDueToCustoms: 0,
-    breakdown: {},
-  });
+export default function Index() {
+  const { sections } = useLoaderData<typeof loader>();
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  // const { toast } = useToast();
 
-  // Vehicle type options
-  const vehicleTypes = [
-    { value: "car", label: "Car/Van/SUV" },
-    { value: "truck", label: "Truck" },
-    { value: "boat", label: "Boat" },
-    { value: "heavyEquipment", label: "Heavy Equipment" },
-    { value: "atv", label: "ATV" },
-  ];
+  const createValidationSchema = () => {
+    const schemaFields: Record<string, any> = {};
 
-  // States for domestic transport
-  const states = [
-    "Florida",
-    "Georgia",
-    "South Carolina",
-    "Alabama",
-    "North Carolina",
-    "Tennessee",
-    "Kentucky",
-    "Mississippi",
-    "Louisiana",
-    "Delaware",
-    // ... add other states
-  ];
+    sections?.forEach((section) => {
+      section.fields
+        .filter((f) => !f.isHidden && f.enabled)
+        .forEach((field) => {
+          let fieldSchema = z.any();
 
-  // Islands for shipping
-  const islands = ["Nassau", "Freeport", "Abaco"];
+          switch (field.type) {
+            case "number":
+              fieldSchema = z.number().nullable();
+              break;
+            case "checkbox":
+              fieldSchema = z.boolean();
+              break;
+            case "select":
+            case "text":
+              fieldSchema = z.string();
+              break;
+          }
 
-  const calculateCosts = () => {
-    // This would be handled by the backend
-    // For now, we'll just set some placeholder calculations
-    setSummary({
-      totalLandedCost: 0,
-      totalDueToCustoms: 0,
-      breakdown: {
-        purchasePrice: parseFloat(formData.finalPrice) || 0,
-        customsDuty: 0,
-        vat: 0,
-        processingFee: 0,
-        levyFee: 250,
-        shippingCost: 0,
-        serviceFee: 0,
-      },
+          if (field.required) {
+            fieldSchema = fieldSchema.refine((val) => {
+              if (typeof val === "string") return val.trim().length > 0;
+              if (typeof val === "number") return true;
+              if (typeof val === "boolean") return true;
+              return false;
+            }, `${field.name} is required`);
+          }
+
+          schemaFields[field.id] = fieldSchema;
+        });
     });
+
+    return z.object(schemaFields);
   };
 
-  useEffect(() => {
-    if (formData.finalPrice) {
-      calculateCosts();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    const schema = createValidationSchema();
+
+    try {
+      // Convert string numbers to actual numbers for validation
+      const processedFormData = Object.entries(formData).reduce(
+        (acc, [key, value]) => {
+          const field = sections
+            ?.flatMap((s) => s.fields)
+            .find((f) => f.id === key);
+          if (field?.type === "number" && value !== "") {
+            acc[key] = Number(value);
+          } else {
+            acc[key] = value;
+          }
+          return acc;
+        },
+        {} as Record<string, any>
+      );
+
+      const validatedData = schema.parse(processedFormData);
+
+      // Handle your form submission here
+      console.log("Form data validated:", validatedData);
+
+      // toast({
+      //   title: "Success",
+      //   description: "Form submitted successfully",
+      // });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path) {
+            newErrors[err.path[0]] = err.message;
+          }
+        });
+        setErrors(newErrors);
+
+        // toast({
+        //   variant: "destructive",
+        //   title: "Validation Error",
+        //   description: "Please check the required fields",
+        // });
+      }
     }
-  }, [formData]);
+  };
+
+  const renderField = (field: any) => {
+    if (!field.enabled) return null;
+
+    const handleChange = (value: any) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field.id]: value,
+      }));
+      // Clear error when field is modified
+      if (errors[field.id]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[field.id];
+          return newErrors;
+        });
+      }
+    };
+
+    const commonLabelClasses = `${
+      field.required
+        ? "after:content-['*'] after:ml-0.5 after:text-red-500"
+        : ""
+    }`;
+    const errorClasses = errors[field.id]
+      ? "border-red-500 focus-visible:ring-red-500"
+      : "";
+
+    switch (field.type) {
+      case "select":
+        const options = field.options ? JSON.parse(field.options) : [];
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label className={commonLabelClasses}>{field.name}</Label>
+            <Select
+              value={formData[field.id] || ""}
+              onValueChange={(value) => handleChange(value)}
+              required={field.required}
+            >
+              <SelectTrigger className={errorClasses}>
+                <SelectValue placeholder={`Select ${field.name}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((opt: any) => (
+                  <SelectItem key={opt.id || opt} value={opt.value || opt}>
+                    {opt.value || opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors[field.id] && (
+              <p className="text-sm text-red-500">{errors[field.id]}</p>
+            )}
+          </div>
+        );
+
+      case "number":
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label className={commonLabelClasses}>{field.name}</Label>
+            <Input
+              type="number"
+              value={formData[field.id] || ""}
+              onChange={(e) => handleChange(e.target.value)}
+              required={field.required}
+              className={errorClasses}
+            />
+            {errors[field.id] && (
+              <p className="text-sm text-red-500">{errors[field.id]}</p>
+            )}
+          </div>
+        );
+
+      case "checkbox":
+        return (
+          <div key={field.id} className="flex items-center space-x-2">
+            <Checkbox
+              id={field.id}
+              checked={formData[field.id] || false}
+              onCheckedChange={(checked) => handleChange(checked)}
+              required={field.required}
+            />
+            <Label htmlFor={field.id} className={commonLabelClasses}>
+              {field.name}
+            </Label>
+          </div>
+        );
+
+      case "text":
+      default:
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label className={commonLabelClasses}>{field.name}</Label>
+            <Input
+              type="text"
+              value={formData[field.id] || ""}
+              onChange={(e) => handleChange(e.target.value)}
+              required={field.required}
+              className={errorClasses}
+            />
+            {errors[field.id] && (
+              <p className="text-sm text-red-500">{errors[field.id]}</p>
+            )}
+          </div>
+        );
+    }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8 ">
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">Vehicle Import Calculator</h1>
         <p className="text-gray-600">
@@ -79,220 +233,39 @@ const VehicleCalculator = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-black ">
-        {/* Left Column - Input Form */}
-        <div className="space-y-6 bg-white p-6 rounded-lg shadow">
-          {/* Purchase Type Selection */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Purchase Type</label>
-            <div className="flex space-x-4">
-              {["regular", "copart", "iaai"].map((type) => (
-                <button
-                  key={type}
-                  onClick={() =>
-                    setFormData({ ...formData, purchaseType: type })
-                  }
-                  className={`px-4 py-2 rounded-md ${
-                    formData.purchaseType === type
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
-                  }`}
-                >
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </button>
+      <form onSubmit={handleSubmit}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Form</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue={sections?.[0]?.id} className="w-full">
+              <TabsList className="w-full justify-start">
+                {sections?.map((section) => (
+                  <TabsTrigger key={section.id} value={section.id}>
+                    {section.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {sections?.map((section) => (
+                <TabsContent key={section.id} value={section.id}>
+                  <div className="space-y-6">
+                    {section.fields
+                      .filter((f) => !f.isHidden)
+                      .map((field) => renderField(field))}
+                  </div>
+                </TabsContent>
               ))}
-            </div>
-          </div>
+            </Tabs>
+          </CardContent>
+        </Card>
 
-          {/* Vehicle Details */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium">Vehicle Type</label>
-              <select
-                value={formData.vehicleType}
-                onChange={(e) =>
-                  setFormData({ ...formData, vehicleType: e.target.value })
-                }
-                className="mt-1 block w-full bg-white rounded-md border border-gray-300 p-2"
-              >
-                {vehicleTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Engine Type</label>
-              <select
-                value={formData.engineType}
-                onChange={(e) =>
-                  setFormData({ ...formData, engineType: e.target.value })
-                }
-                className="mt-1 block w-full bg-white rounded-md border border-gray-300 p-2"
-              >
-                <option value="gasoline">Gasoline</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="electric">Electric</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Location Details */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium">
-                State of Purchase
-              </label>
-              <select
-                value={formData.state}
-                onChange={(e) =>
-                  setFormData({ ...formData, state: e.target.value })
-                }
-                className="mt-1 block w-full bg-white rounded-md border border-gray-300 p-2"
-              >
-                {states.map((state) => (
-                  <option key={state} value={state}>
-                    {state}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">
-                Destination Island
-              </label>
-              <select
-                value={formData.destinationIsland}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    destinationIsland: e.target.value,
-                  })
-                }
-                className="mt-1 block w-full bg-white rounded-md border border-gray-300 p-2"
-              >
-                {islands.map((island) => (
-                  <option key={island} value={island}>
-                    {island}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Price and Options */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium">
-                Final Price ($)
-              </label>
-              <input
-                type="number"
-                value={formData.finalPrice}
-                onChange={(e) =>
-                  setFormData({ ...formData, finalPrice: e.target.value })
-                }
-                className="mt-1 block w-full bg-white rounded-md border border-gray-300 p-2"
-                placeholder="Enter vehicle price"
-              />
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.inspectionRequired}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      inspectionRequired: e.target.checked,
-                    })
-                  }
-                  className="rounded border-gray-300"
-                />
-                <span className="text-sm">Include Inspection ($500)</span>
-              </label>
-
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.isJapanImport}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      isJapanImport: e.target.checked,
-                    })
-                  }
-                  className="rounded border-gray-300"
-                />
-                <span className="text-sm">Japan Import</span>
-              </label>
-            </div>
-          </div>
+        <div className="mt-6 flex justify-end">
+          <Button type="submit" size="lg">
+            Submit
+          </Button>
         </div>
-
-        {/* Right Column - Cost Summary */}
-        <div className="space-y-6 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold">Cost Summary</h2>
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-              <span>Purchase Price</span>
-              <span className="font-semibold">
-                ${summary.breakdown.purchasePrice?.toLocaleString() || "0"}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-              <span>Customs Duty</span>
-              <span className="font-semibold">
-                ${summary.breakdown.customsDuty?.toLocaleString() || "0"}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-              <span>VAT</span>
-              <span className="font-semibold">
-                ${summary.breakdown.vat?.toLocaleString() || "0"}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-              <span>Shipping Cost</span>
-              <span className="font-semibold">
-                ${summary.breakdown.shippingCost?.toLocaleString() || "0"}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-              <span>Service Fee</span>
-              <span className="font-semibold">
-                ${summary.breakdown.serviceFee?.toLocaleString() || "0"}
-              </span>
-            </div>
-
-            <div className="border-t pt-4 mt-4">
-              <div className="flex justify-between items-center font-bold">
-                <span>Total Due to Customs</span>
-                <span className="text-blue-600">
-                  ${summary.totalDueToCustoms?.toLocaleString() || "0"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center font-bold mt-2">
-                <span>Total Landed Cost</span>
-                <span className="text-green-600">
-                  ${summary.totalLandedCost?.toLocaleString() || "0"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </form>
     </div>
   );
-};
-
-export default VehicleCalculator;
+}

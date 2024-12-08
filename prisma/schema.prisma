@@ -23,6 +23,7 @@ model Field {
   sectionId   String
   type        String // "number" | "text" | "select" | "checkbox"
   required    Boolean  @default(false)
+  isHidden    Boolean  @default(false)
   enabled     Boolean  @default(true)
   baseFieldId String?
   options     String?
