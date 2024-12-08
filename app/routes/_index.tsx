@@ -17,6 +17,13 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 
+// Add these validation schemas at the top level
+const phoneRegex = /^([+]?[\s0-9]+)?(\d{3}|[(]?[0-9]+[)])?([-]?[\s]?[0-9])+$/;
+const contactSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().regex(phoneRegex, "Please enter a valid phone number"),
+});
+
 export async function loader() {
   const sections = await db.getFieldsAndSections();
   return { sections };
@@ -27,6 +34,10 @@ export default function Index() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   // const { toast } = useToast();
+  const [contactInfo, setContactInfo] = useState({ email: "", phone: "" });
+  const [contactErrors, setContactErrors] = useState<Record<string, string>>(
+    {}
+  );
 
   const createValidationSchema = () => {
     const schemaFields: Record<string, any> = {};
@@ -69,11 +80,14 @@ export default function Index() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-
-    const schema = createValidationSchema();
+    setContactErrors({});
 
     try {
-      // Convert string numbers to actual numbers for validation
+      // Validate contact information first
+      const validatedContact = contactSchema.parse(contactInfo);
+
+      // Then validate the rest of the form
+      const schema = createValidationSchema();
       const processedFormData = Object.entries(formData).reduce(
         (acc, [key, value]) => {
           const field = sections
@@ -91,28 +105,41 @@ export default function Index() {
 
       const validatedData = schema.parse(processedFormData);
 
-      // Handle your form submission here
-      console.log("Form data validated:", validatedData);
+      // Combine the validated data
+      const finalData = {
+        ...validatedContact,
+        ...validatedData,
+      };
 
-      // toast({
-      //   title: "Success",
-      //   description: "Form submitted successfully",
-      // });
+      console.log("Form data validated:", finalData);
+
+      toast({
+        title: "Success",
+        description: "Form submitted successfully",
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
         error.errors.forEach((err) => {
           if (err.path) {
-            newErrors[err.path[0]] = err.message;
+            // Separate contact errors from form errors
+            if (err.path[0] === "email" || err.path[0] === "phone") {
+              setContactErrors((prev) => ({
+                ...prev,
+                [err.path[0]]: err.message,
+              }));
+            } else {
+              newErrors[err.path[0]] = err.message;
+            }
           }
         });
         setErrors(newErrors);
 
-        // toast({
-        //   variant: "destructive",
-        //   title: "Validation Error",
-        //   description: "Please check the required fields",
-        // });
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: "Please check all required fields",
+        });
       }
     }
   };
@@ -233,10 +260,85 @@ export default function Index() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Contact Information Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Form</CardTitle>
+            <CardTitle>Contact Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                  Email Address
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={contactInfo.email}
+                  onChange={(e) => {
+                    setContactInfo((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }));
+                    if (contactErrors.email) {
+                      setContactErrors((prev) => {
+                        const newErrors = { ...prev };
+                        delete newErrors.email;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  className={
+                    contactErrors.email
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }
+                />
+                {contactErrors.email && (
+                  <p className="text-sm text-red-500">{contactErrors.email}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                  Phone Number
+                </Label>
+                <Input
+                  type="tel"
+                  placeholder="(123) 456-7890"
+                  value={contactInfo.phone}
+                  onChange={(e) => {
+                    setContactInfo((prev) => ({
+                      ...prev,
+                      phone: e.target.value,
+                    }));
+                    if (contactErrors.phone) {
+                      setContactErrors((prev) => {
+                        const newErrors = { ...prev };
+                        delete newErrors.phone;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  className={
+                    contactErrors.phone
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }
+                />
+                {contactErrors.phone && (
+                  <p className="text-sm text-red-500">{contactErrors.phone}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Existing Form Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Import Details</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue={sections?.[0]?.id} className="w-full">
@@ -260,9 +362,9 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <div className="mt-6 flex justify-end">
+        <div className="flex justify-end">
           <Button type="submit" size="lg">
-            Submit
+            Calculate Total
           </Button>
         </div>
       </form>
