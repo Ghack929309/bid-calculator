@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { GitBranchPlus, Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo } from "react";
+import { Plus } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -8,47 +8,97 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { InputFieldType, LogicFieldType } from "~/lib/types";
-import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
+import {
+  CalculationType,
+  ConditionalCalculationType,
+  InputFieldType,
+  LogicFieldType,
+  SimpleCalculationType,
+} from "~/lib/types";
+import { Dialog, DialogContent } from "./ui/dialog";
 import { Calculator } from "./calculator";
 import { ConditionalCalculation } from "./condition-calculation";
 import { Render } from "./render";
 import { useCalculator } from "~/lib/calculator-context";
 
 export function AddLogic({
+  open,
+  close,
   fields,
   logicId,
   logicalField,
+  allCalculations,
 }: {
+  open: boolean;
+  close: () => void;
   fields: InputFieldType[];
   logicId: string;
   logicalField: LogicFieldType[];
+  allCalculations: (SimpleCalculationType | ConditionalCalculationType)[];
 }) {
   const {
-    getInitialCalculations,
-    calculations,
     condition,
     addCondition,
     addOperation,
     removeCondition,
     updateCondition,
-    updateOperation,
+    updateSimpleOperation,
     removeCalculation,
     selectedSimpleCalculation,
     saveCalculations,
+    setCondition,
+    setSelectedSimpleCalculation,
+    setConditionalCalculations,
+    setSimpleCalculations,
+    setLogicId,
   } = useCalculator();
 
-  const [openModal, setOpenModal] = useState(false);
+  const simpleCalculations = useMemo(() => {
+    return allCalculations?.filter(
+      (cal) => cal.type === CalculationType.SIMPLE
+    ) as SimpleCalculationType[];
+  }, [allCalculations]);
+
+  const conditionalCalculations = useMemo(() => {
+    return allCalculations?.filter(
+      (cal) => cal.type === CalculationType.CONDITIONAL
+    ) as ConditionalCalculationType[];
+  }, [allCalculations]);
+
+  const init = useCallback(() => {
+    setLogicId(logicId);
+    setSimpleCalculations(simpleCalculations);
+
+    setConditionalCalculations(conditionalCalculations);
+    setCondition(
+      allCalculations?.find(
+        (cal) =>
+          cal.logicId === logicId && cal.type === CalculationType.CONDITIONAL
+      ) as ConditionalCalculationType
+    );
+    setSelectedSimpleCalculation(
+      allCalculations?.find(
+        (cal) => cal.logicId === logicId && cal.type === CalculationType.SIMPLE
+      ) as SimpleCalculationType
+    );
+  }, [
+    allCalculations,
+    logicId,
+    setLogicId,
+    setSimpleCalculations,
+    setConditionalCalculations,
+    setCondition,
+    setSelectedSimpleCalculation,
+    simpleCalculations,
+    conditionalCalculations,
+  ]);
 
   useEffect(() => {
-    getInitialCalculations(logicId);
-  }, [logicId, getInitialCalculations]);
+    init();
+  }, [init]);
 
   return (
-    <Dialog open={openModal} onOpenChange={(open) => setOpenModal(open)}>
-      <DialogTrigger asChild>
-        <GitBranchPlus className="w-4 h-4 cursor-pointer text-orange-500 hover:text-orange-700" />
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={() => close()}>
       <DialogContent className="max-w-4xl">
         <Card>
           <CardHeader>
@@ -61,12 +111,15 @@ export function AddLogic({
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <Calculator
+                addMoreOperation={() => {}}
+                onDelete={removeCalculation}
+                updateOperation={updateSimpleOperation}
                 calculationId={selectedSimpleCalculation?.id as string}
                 operations={selectedSimpleCalculation?.operations}
                 fields={fields}
                 logicFields={logicalField}
               />
-              <Render when={condition !== null}>
+              <Render when={condition?.logicId === logicId}>
                 <ConditionalCalculation
                   fields={fields}
                   logicFields={logicalField}
@@ -78,7 +131,7 @@ export function AddLogic({
 
             <div className="flex space-x-2">
               <Button
-                disabled={calculations.length > 0}
+                disabled={!!condition || simpleCalculations.length > 0}
                 variant="outline"
                 onClick={addOperation}
               >
@@ -86,7 +139,10 @@ export function AddLogic({
                 Add Simple Calculation
               </Button>
               <Button
-                disabled={condition !== null}
+                disabled={
+                  !!selectedSimpleCalculation ||
+                  conditionalCalculations.length > 0
+                }
                 className="mr-auto"
                 variant="default"
                 onClick={addCondition}

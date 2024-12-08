@@ -1,24 +1,16 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  ReactNode,
-  useCallback,
-} from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import { useFetcher } from "@remix-run/react";
 import { calculationService } from "~/services/calculation-service";
 import { Action } from "~/routes/admin";
 import { createInitialCondition } from "~/lib/utils";
 import {
   CalculationOperation,
-  CalculationType,
   ConditionalCalculationType,
   SimpleCalculationType,
 } from "~/lib/types";
 
 interface CalculatorContextType {
-  calculations: SimpleCalculationType[];
+  simpleCalculations: SimpleCalculationType[];
   condition: ConditionalCalculationType | null;
   selectedSimpleCalculation: SimpleCalculationType | undefined;
   addCondition: () => void;
@@ -26,9 +18,8 @@ interface CalculatorContextType {
   removeCondition: () => void;
   addOperation: () => void;
   removeCalculation: (calculationId: string, operationId: string) => void;
-  updateOperation: (operation: CalculationOperation) => void;
+  updateSimpleOperation: (operation: CalculationOperation) => void;
   saveCalculations: () => void;
-  getInitialCalculations: (logicFieldId: string) => SimpleCalculationType[];
   updateConditionalOperation: (
     operation: CalculationOperation,
     type: "then" | "else"
@@ -37,54 +28,38 @@ interface CalculatorContextType {
     operationId: string,
     type: "then" | "else"
   ) => void;
+  setSelectedSimpleCalculation: (calculation: SimpleCalculationType) => void;
+  setSimpleCalculations: (calculations: SimpleCalculationType[]) => void;
+  setConditionalCalculations: (
+    calculations: ConditionalCalculationType[]
+  ) => void;
+  setCondition: (condition: ConditionalCalculationType | null) => void;
+  setLogicId: (logicId: string | null) => void;
 }
 
 const CalculatorContext = createContext<CalculatorContextType | undefined>(
   undefined
 );
 
-export function CalculatorProvider({
-  children,
-  logicId,
-}: {
-  children: ReactNode;
-  logicId: string;
-}) {
-  const [initialCalculations, setInitialCalculations] = useState<
-    SimpleCalculationType[] | ConditionalCalculationType[]
-  >([]);
+export function CalculatorProvider({ children }: { children: ReactNode }) {
+  const [logicId, setLogicId] = useState<string | null>(null);
+  const [selectedSimpleCalculation, setSelectedSimpleCalculation] = useState<
+    SimpleCalculationType | undefined
+  >(undefined);
   const calcFetcher = useFetcher();
-  const [calculations, setCalculations] = useState<SimpleCalculationType[]>(
-    initialCalculations.filter(
-      (cal) => cal.type === CalculationType.SIMPLE
-    ) as SimpleCalculationType[]
-  );
+  const [simpleCalculations, setSimpleCalculations] = useState<
+    SimpleCalculationType[] | []
+  >([]);
+  const [conditionalCalculations, setConditionalCalculations] = useState<
+    ConditionalCalculationType[] | []
+  >([]);
   const [condition, setCondition] = useState<ConditionalCalculationType | null>(
-    initialCalculations.find(
-      (cal) => cal.type === CalculationType.CONDITIONAL
-    ) || null
-  );
-
-  const selectedSimpleCalculation = useMemo(() => {
-    return calculations?.find(
-      (cal) => cal.logicId === logicId && cal.type === CalculationType.SIMPLE
-    );
-  }, [calculations, logicId]);
-
-  const getInitialCalculations = useCallback(
-    (logicFieldId: string) => {
-      const result = calculations.filter(
-        (cal) => cal.logicId === logicFieldId
-      ) as SimpleCalculationType[];
-      setInitialCalculations(result);
-      return result;
-    },
-    [calculations]
+    null
   );
 
   const addCondition = () => {
     const initialCondition = createInitialCondition();
-    setCondition({ ...initialCondition, logicId });
+    setCondition({ ...initialCondition, logicId: logicId as string });
   };
 
   const updateCondition = (updates: Partial<ConditionalCalculationType>) => {
@@ -97,14 +72,14 @@ export function CalculatorProvider({
 
   const addOperation = () => {
     const newCalculation = calculationService.addCalculation({
-      calculations: calculations as SimpleCalculationType[],
-      logicId,
+      calculations: simpleCalculations as SimpleCalculationType[],
+      logicId: logicId as string,
     });
-    setCalculations(newCalculation);
+    setSimpleCalculations(newCalculation);
   };
 
   const removeCalculation = (calculationId: string, operationId: string) => {
-    setCalculations((prev) =>
+    setSimpleCalculations((prev) =>
       calculationService.removeCalculation({
         calculations: prev,
         calculationId,
@@ -116,11 +91,11 @@ export function CalculatorProvider({
   const updateSimpleOperation = (operation: CalculationOperation) => {
     if (!selectedSimpleCalculation) return;
     const update = calculationService.updateCalculationOperations({
-      calculations: calculations as SimpleCalculationType[],
+      calculations: simpleCalculations as SimpleCalculationType[],
       calculationId: selectedSimpleCalculation?.id,
       operation,
     });
-    setCalculations(update);
+    setSimpleCalculations(update);
   };
   const updateConditionalOperation = (
     operation: CalculationOperation,
@@ -168,7 +143,7 @@ export function CalculatorProvider({
   };
 
   const value = {
-    calculations,
+    simpleCalculations,
     condition,
     selectedSimpleCalculation,
     addCondition,
@@ -176,11 +151,15 @@ export function CalculatorProvider({
     removeCondition,
     addOperation,
     removeCalculation,
-    updateOperation: updateSimpleOperation,
+    updateSimpleOperation,
     saveCalculations,
-    getInitialCalculations,
+    setLogicId,
     updateConditionalOperation,
     removeConditionalOperation,
+    setCondition,
+    setSimpleCalculations,
+    setSelectedSimpleCalculation,
+    setConditionalCalculations,
   };
 
   return (

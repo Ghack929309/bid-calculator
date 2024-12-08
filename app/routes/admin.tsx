@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { AddLogic } from "~/components/add-logic";
 import {
+  CalculationType,
+  ConditionalCalculationType,
   InputFieldType,
   LogicFieldType,
   SimpleCalculationType,
@@ -25,6 +27,7 @@ import { calculationService } from "~/services/calculation-service";
 import { Result } from "~/components/result";
 import { AddVariableField } from "~/components/add-variable-field";
 import { CalculatorProvider } from "~/lib/calculator-context";
+import { Render } from "~/components/render";
 
 export enum Action {
   createSection = "createSection",
@@ -162,15 +165,16 @@ export async function action({ request }: ActionFunctionArgs) {
         });
       }
       case Action.createAndUpdateCalculation: {
-        console.log("create calculation", data);
         const isExist = await db.getCalculationByLogicId(data.logicId);
         console.log("isExist", isExist);
         if (isExist?.id) {
+          console.log("update calculation", data);
           return {
             error: null,
             data: await db.updateCalculation(data),
           };
         }
+        console.log("create calculation", data);
         return {
           error: null,
           data: await db.createCalculation(data),
@@ -231,6 +235,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 const CalculatorAdmin = () => {
   const { fields, sections, logicFields, sectionId, calculations } =
     useLoaderData<typeof loader>();
+  const [activeLogicId, setActiveLogicId] = useState<string | null>(null);
   const calcFetcher = useFetcher();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(sectionId);
@@ -513,32 +518,46 @@ const CalculatorAdmin = () => {
           <p className="text-gray-600 mt-2">Manage logic for each field</p>
         </div>
         <div className="flex flex-col gap-y-2">
-          <CalculatorProvider logicId={activeTab}>
-            {logicFields?.map((logic: any) => (
-              <div key={logic.id} className="flex items-center justify-between">
-                <p>{logic.name}</p>
-                <div className="flex items-center space-x-2">
-                  <CreateField
-                    trigger={
-                      <Pencil className="w-4 h-4 cursor-pointer text-blue-600" />
-                    }
-                    id={logic.id}
-                    name={logic.name}
-                    handleAddField={handleAddLogicalField}
-                    handleUpdateField={handleUpdateLogicalField}
-                  />
-                  <AddLogic
-                    logicId={logic.id}
-                    fields={fields as InputFieldType[]}
-                    logicalField={logicFields as LogicFieldType[]}
-                  />
-                  <Trash2
-                    onClick={() => handleDeleteLogicField(logic.id)}
-                    className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-700"
-                  />
+          <CalculatorProvider>
+            {logicFields?.map((logic: any) => {
+              return (
+                <div
+                  key={logic.id}
+                  className="flex items-center justify-between"
+                >
+                  <p>{logic.name}</p>
+                  <div className="flex items-center space-x-2">
+                    <CreateField
+                      trigger={
+                        <Pencil className="w-4 h-4 cursor-pointer text-blue-600" />
+                      }
+                      id={logic.id}
+                      name={logic.name}
+                      handleAddField={handleAddLogicalField}
+                      handleUpdateField={handleUpdateLogicalField}
+                    />
+                    <GitBranchPlus
+                      onClick={() => setActiveLogicId(logic.id)}
+                      className="w-4 h-4 cursor-pointer text-orange-500 hover:text-orange-700"
+                    />
+                    <Render when={activeLogicId === logic.id}>
+                      <AddLogic
+                        open={activeLogicId === logic.id}
+                        close={() => setActiveLogicId(null)}
+                        allCalculations={calculations as any}
+                        logicId={logic.id}
+                        fields={fields as InputFieldType[]}
+                        logicalField={logicFields as LogicFieldType[]}
+                      />
+                    </Render>
+                    <Trash2
+                      onClick={() => handleDeleteLogicField(logic.id)}
+                      className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-700"
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <CreateField
               handleAddField={handleAddLogicalField}
               handleUpdateField={handleUpdateLogicalField}

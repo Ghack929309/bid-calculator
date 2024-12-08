@@ -193,6 +193,13 @@ class DatabaseService {
   async createCalculation(
     calculation: SimpleCalculationType | ConditionalCalculationType
   ) {
+    const logicField = await this.prisma.logicField.findUnique({
+      where: { id: calculation.logicId },
+    });
+    console.log("logic field", logicField);
+    if (!logicField) {
+      throw new Error(`LogicField with id ${calculation.logicId} not found`);
+    }
     return this.prisma.calculation.create({
       data:
         calculation.type === CalculationType.SIMPLE
