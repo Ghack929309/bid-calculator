@@ -16,6 +16,7 @@ import {
 } from "../ui/select";
 
 type CompareValueSectionProps = {
+  id: string;
   condition: ConditionalCalculationType["comparedValues"];
   type: "value1" | "value2";
   fields: InputFieldType[];
@@ -26,6 +27,7 @@ type CompareValueSectionProps = {
 
 export const CompareValueSection = ({
   condition,
+  id,
   fields,
   type,
   logicFields,
@@ -56,26 +58,28 @@ export const CompareValueSection = ({
           <div className="flex items-center space-x-2">
             <RadioGroupItem
               value={CompareValueTypes.FIXED}
-              id={`fixed-${condition[type].value}`}
+              id={`fixed-${condition[type].value}-${id}`}
             />
-            <Label htmlFor={`fixed-${condition[type].value}`}>Number</Label>
+            <Label htmlFor={`fixed-${condition[type].value}-${id}`}>
+              Number
+            </Label>
           </div>
         )}
         <div className="flex items-center space-x-2">
           <RadioGroupItem
             value={CompareValueTypes.INPUT}
-            id={`input-compare-${condition[type].value}`}
+            id={`input-compare-${condition[type].value}-${id}`}
           />
-          <Label htmlFor={`input-compare-${condition[type].value}`}>
+          <Label htmlFor={`input-compare-${condition[type].value}-${id}`}>
             Field
           </Label>
         </div>
         <div className="flex items-center space-x-2">
           <RadioGroupItem
             value={CompareValueTypes.LOGIC}
-            id={`logic-compare-${condition[type].value}`}
+            id={`logic-compare-${condition[type].value}-${id}`}
           />
-          <Label htmlFor={`logic-compare-${condition[type].value}`}>
+          <Label htmlFor={`logic-compare-${condition[type].value}-${id}`}>
             Logic
           </Label>
         </div>

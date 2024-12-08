@@ -45,7 +45,6 @@ export const ResultSection = ({
     <div className="grid gap-4">
       <div className="flex flex-col items-center gap-4">
         <Calculator
-          calculationId={condition.id}
           operations={
             type === "then"
               ? condition.operations.then
@@ -57,7 +56,7 @@ export const ResultSection = ({
           updateOperation={(operation) =>
             updateConditionalOperation(operation, type)
           }
-          onDelete={(calculationId, operationId) => {
+          onDelete={(operationId) => {
             removeConditionalOperation(operationId, type);
           }}
         />

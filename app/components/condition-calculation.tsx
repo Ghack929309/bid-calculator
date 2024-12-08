@@ -5,7 +5,6 @@ import {
   LogicFieldType,
 } from "~/lib/types";
 import { SingleCondition } from "./condition/single-condition";
-import { useCalculator } from "~/lib/calculator-context";
 
 type ConditionalCalculationProps = {
   fields: InputFieldType[];
@@ -17,11 +16,9 @@ type ConditionalCalculationProps = {
 export const ConditionalCalculation = ({
   fields,
   logicFields,
-
   onUpdate,
   onRemove,
 }: ConditionalCalculationProps) => {
-  const { condition } = useCalculator();
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -29,7 +26,6 @@ export const ConditionalCalculation = ({
       </CardHeader>
       <CardContent className="space-y-6">
         <SingleCondition
-          condition={condition}
           fields={fields}
           logicFields={logicFields}
           onUpdate={onUpdate}

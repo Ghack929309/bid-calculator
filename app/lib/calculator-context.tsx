@@ -10,14 +10,14 @@ import {
 } from "~/lib/types";
 
 interface CalculatorContextType {
-  simpleCalculations: SimpleCalculationType[];
   condition: ConditionalCalculationType | null;
   selectedSimpleCalculation: SimpleCalculationType | undefined;
   addCondition: () => void;
   updateCondition: (updates: Partial<ConditionalCalculationType>) => void;
   removeCondition: () => void;
-  addOperation: () => void;
-  removeCalculation: (calculationId: string, operationId: string) => void;
+  addNewSimpleCalculation: () => void;
+  addNewSimpleOperation: () => void;
+  removeSimpleOperation: (operationId: string) => void;
   updateSimpleOperation: (operation: CalculationOperation) => void;
   saveCalculations: () => void;
   updateConditionalOperation: (
@@ -29,10 +29,6 @@ interface CalculatorContextType {
     type: "then" | "else"
   ) => void;
   setSelectedSimpleCalculation: (calculation: SimpleCalculationType) => void;
-  setSimpleCalculations: (calculations: SimpleCalculationType[]) => void;
-  setConditionalCalculations: (
-    calculations: ConditionalCalculationType[]
-  ) => void;
   setCondition: (condition: ConditionalCalculationType | null) => void;
   setLogicId: (logicId: string | null) => void;
 }
@@ -47,12 +43,7 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
     SimpleCalculationType | undefined
   >(undefined);
   const calcFetcher = useFetcher();
-  const [simpleCalculations, setSimpleCalculations] = useState<
-    SimpleCalculationType[] | []
-  >([]);
-  const [conditionalCalculations, setConditionalCalculations] = useState<
-    ConditionalCalculationType[] | []
-  >([]);
+
   const [condition, setCondition] = useState<ConditionalCalculationType | null>(
     null
   );
@@ -70,33 +61,42 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
     setCondition(null);
   };
 
-  const addOperation = () => {
+  const addNewSimpleCalculation = () => {
     const newCalculation = calculationService.addCalculation({
-      calculations: simpleCalculations as SimpleCalculationType[],
       logicId: logicId as string,
     });
-    setSimpleCalculations(newCalculation);
+
+    setSelectedSimpleCalculation(newCalculation);
   };
 
-  const removeCalculation = (calculationId: string, operationId: string) => {
-    setSimpleCalculations((prev) =>
-      calculationService.removeCalculation({
-        calculations: prev,
-        calculationId,
-        operationId,
-      })
-    );
+  const addNewSimpleOperation = () => {
+    if (!selectedSimpleCalculation) return;
+    const newOperation = calculationService.addSimpleOperation();
+    setSelectedSimpleCalculation({
+      ...selectedSimpleCalculation,
+      operations: [...selectedSimpleCalculation.operations, newOperation],
+    });
+  };
+
+  const removeSimpleOperation = (operationId: string) => {
+    if (!selectedSimpleCalculation) return;
+    const updatedCalculation = calculationService.removeSimpleOperation({
+      simpleCalculation: selectedSimpleCalculation,
+      operationId,
+    });
+    setSelectedSimpleCalculation(updatedCalculation);
   };
 
   const updateSimpleOperation = (operation: CalculationOperation) => {
     if (!selectedSimpleCalculation) return;
     const update = calculationService.updateCalculationOperations({
-      calculations: simpleCalculations as SimpleCalculationType[],
-      calculationId: selectedSimpleCalculation?.id,
+      simpleCalculation: selectedSimpleCalculation,
       operation,
     });
-    setSimpleCalculations(update);
+
+    setSelectedSimpleCalculation(update);
   };
+
   const updateConditionalOperation = (
     operation: CalculationOperation,
     type: "then" | "else"
@@ -143,23 +143,21 @@ export function CalculatorProvider({ children }: { children: ReactNode }) {
   };
 
   const value = {
-    simpleCalculations,
     condition,
     selectedSimpleCalculation,
     addCondition,
     updateCondition,
     removeCondition,
-    addOperation,
-    removeCalculation,
+    addNewSimpleCalculation,
+    removeSimpleOperation,
     updateSimpleOperation,
     saveCalculations,
     setLogicId,
     updateConditionalOperation,
     removeConditionalOperation,
     setCondition,
-    setSimpleCalculations,
     setSelectedSimpleCalculation,
-    setConditionalCalculations,
+    addNewSimpleOperation,
   };
 
   return (

@@ -56,67 +56,30 @@ class CalculationService {
     return newCalculation as SimpleCalculationType;
   }
 
-  addCalculation({
-    calculations,
-    logicId,
-  }: {
-    calculations: SimpleCalculationType[];
-    logicId: string;
-  }) {
-    console.log("calculations", calculations);
-    const existingCalculation = calculations?.find(
-      (c) => c.logicId === logicId
-    );
+  addSimpleOperation(): CalculationOperation {
+    return { ...defaultSimpleOperations, id: uuidv4() };
+  }
 
-    if (
-      !existingCalculation ||
-      existingCalculation.type !== CalculationType.SIMPLE
-    ) {
-      const id = uuidv4();
-      const defaultData = this.createSimpleCalculation({ logicId });
+  addCalculation({ logicId }: { logicId: string }): SimpleCalculationType {
+    const id = uuidv4();
+    const defaultData = this.createSimpleCalculation({ logicId });
 
-      // db.createCalculation({ ...defaultData, id });
-      return [...calculations, { ...defaultData, id }];
-    }
-
-    // Add new operation to existing calculation
-    return calculations.map((calc) => {
-      if (calc.logicId === logicId && calc.type === CalculationType.SIMPLE) {
-        return {
-          ...calc,
-          operations: [
-            ...calc.operations,
-            {
-              ...defaultSimpleOperations,
-              id: uuidv4(),
-            } as CalculationOperation,
-          ],
-        };
-      }
-      return calc;
-    });
+    return { ...defaultData, id };
   }
 
   updateCalculationOperations({
-    calculations,
-    calculationId,
+    simpleCalculation,
     operation,
   }: {
-    calculations: SimpleCalculationType[];
-    calculationId: string;
+    simpleCalculation: SimpleCalculationType;
     operation: CalculationOperation;
-  }) {
-    return calculations.map((calc) => {
-      if (calc.id === calculationId) {
-        return {
-          ...calc,
-          operations: calc.operations.map((op) =>
-            op.id === operation.id ? { ...operation } : op
-          ),
-        };
-      }
-      return calc;
-    });
+  }): SimpleCalculationType {
+    return {
+      ...simpleCalculation,
+      operations: simpleCalculation.operations.map((op) =>
+        op.id === operation.id ? operation : op
+      ),
+    };
   }
 
   updateCalculation({
@@ -133,24 +96,19 @@ class CalculationService {
     );
   }
 
-  removeCalculation({
-    calculations,
-    calculationId,
+  removeSimpleOperation({
+    simpleCalculation,
     operationId,
   }: {
-    calculations: SimpleCalculationType[];
-    calculationId: string;
+    simpleCalculation: SimpleCalculationType;
     operationId: string;
   }) {
-    return calculations.map((calc) => {
-      if (calc.id === calculationId && "operations" in calc) {
-        return {
-          ...calc,
-          operations: calc.operations.filter((op) => op.id !== operationId),
-        };
-      }
-      return calc;
-    });
+    return {
+      ...simpleCalculation,
+      operations: simpleCalculation.operations.filter(
+        (op) => op.id !== operationId
+      ),
+    };
   }
 
   #resolveValue(

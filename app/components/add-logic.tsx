@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -39,37 +39,23 @@ export function AddLogic({
   const {
     condition,
     addCondition,
-    addOperation,
+    addNewSimpleCalculation,
+    addNewSimpleOperation,
     removeCondition,
     updateCondition,
     updateSimpleOperation,
-    removeCalculation,
+    removeSimpleOperation,
     selectedSimpleCalculation,
     saveCalculations,
     setCondition,
     setSelectedSimpleCalculation,
-    setConditionalCalculations,
-    setSimpleCalculations,
     setLogicId,
   } = useCalculator();
-
-  const simpleCalculations = useMemo(() => {
-    return allCalculations?.filter(
-      (cal) => cal.type === CalculationType.SIMPLE
-    ) as SimpleCalculationType[];
-  }, [allCalculations]);
-
-  const conditionalCalculations = useMemo(() => {
-    return allCalculations?.filter(
-      (cal) => cal.type === CalculationType.CONDITIONAL
-    ) as ConditionalCalculationType[];
-  }, [allCalculations]);
+  const isButtonDisabled = !!condition || !!selectedSimpleCalculation;
 
   const init = useCallback(() => {
     setLogicId(logicId);
-    setSimpleCalculations(simpleCalculations);
 
-    setConditionalCalculations(conditionalCalculations);
     setCondition(
       allCalculations?.find(
         (cal) =>
@@ -85,12 +71,8 @@ export function AddLogic({
     allCalculations,
     logicId,
     setLogicId,
-    setSimpleCalculations,
-    setConditionalCalculations,
     setCondition,
     setSelectedSimpleCalculation,
-    simpleCalculations,
-    conditionalCalculations,
   ]);
 
   useEffect(() => {
@@ -111,10 +93,9 @@ export function AddLogic({
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <Calculator
-                addMoreOperation={() => {}}
-                onDelete={removeCalculation}
+                addMoreOperation={addNewSimpleOperation}
+                onDelete={removeSimpleOperation}
                 updateOperation={updateSimpleOperation}
-                calculationId={selectedSimpleCalculation?.id as string}
                 operations={selectedSimpleCalculation?.operations}
                 fields={fields}
                 logicFields={logicalField}
@@ -131,18 +112,15 @@ export function AddLogic({
 
             <div className="flex space-x-2">
               <Button
-                disabled={!!condition || simpleCalculations.length > 0}
+                disabled={isButtonDisabled}
                 variant="outline"
-                onClick={addOperation}
+                onClick={addNewSimpleCalculation}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Simple Calculation
               </Button>
               <Button
-                disabled={
-                  !!selectedSimpleCalculation ||
-                  conditionalCalculations.length > 0
-                }
+                disabled={isButtonDisabled}
                 className="mr-auto"
                 variant="default"
                 onClick={addCondition}

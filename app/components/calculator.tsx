@@ -13,17 +13,15 @@ import { defaultConditionalComparator } from "~/lib/constant";
 
 interface CalculatorProps {
   operations?: CalculationOperation[];
-  calculationId: string;
   addMoreOperation: () => void;
   fields: InputFieldType[];
   logicFields: LogicFieldType[];
-  onDelete: (calculationId: string, operationId: string) => void;
+  onDelete: (operationId: string) => void;
   updateOperation: (newOperation: CalculationOperation) => void;
 }
 
 export function Calculator({
   operations,
-  calculationId,
   fields,
   logicFields,
   addMoreOperation,
@@ -50,12 +48,13 @@ export function Calculator({
   if (!operations) return null;
   return (
     <div className="grid grid-cols-1">
-      {operations?.map((operation: CalculationOperation) => (
+      {operations?.map((operation: CalculationOperation, idx) => (
         // TODO: check if the last operation is percentage, then show the percentage UI
         <div className="w-full" key={operation.id}>
           <div className="flex items-end gap-2 mb-4">
             <CompareValueSection
               type="value1"
+              id={operation.id}
               condition={{
                 value1:
                   operation.value1 || defaultConditionalComparator["value1"],
@@ -85,6 +84,7 @@ export function Calculator({
             />
 
             <CompareValueSection
+              id={`${operation.id}-${idx}`}
               type="value2"
               condition={{
                 value1:
@@ -107,7 +107,7 @@ export function Calculator({
               variant="ghost"
               size="icon"
               onClick={() => {
-                onDelete?.(calculationId, operation.id);
+                onDelete?.(operation.id);
               }}
             >
               <X className="h-4 w-4" />
