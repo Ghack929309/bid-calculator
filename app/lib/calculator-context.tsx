@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { useFetcher } from "@remix-run/react";
 import { calculationService } from "~/services/calculation-service";
-import { Action } from "~/routes/admin";
+import { Action } from "~/routes/admin.calculator";
 import { createInitialCondition } from "~/lib/utils";
 import {
   CalculationOperation,

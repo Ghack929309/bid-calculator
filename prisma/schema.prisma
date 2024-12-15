@@ -2,6 +2,8 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// sqlitecloud://crixsey4hk.sqlite.cloud:8860/dev.db?apikey=K0J40rYawxnhMwspQaqRTIDS3RIARbCAbJYQbUNVad0
+
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
@@ -55,4 +57,14 @@ model Calculation {
   operations     String     @default("[]") // JSON string for operations
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+}
+
+model UserRequest {
+  id        String   @id @default(uuid())
+  email     String
+  phone     String
+  fields    String
+  sectionId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

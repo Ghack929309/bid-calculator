@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { userRequestSchema } from "~/lib/schema";
 import {
   SimpleCalculationType,
   CalculationOperation,
@@ -7,6 +8,7 @@ import {
   ConditionalCalculationType,
   CalculationType,
 } from "~/lib/types";
+import { z } from "zod";
 
 class DatabaseService {
   private static instance: DatabaseService;
@@ -348,6 +350,27 @@ class DatabaseService {
       logicId: calculation.logicId,
       operations: JSON.stringify(calculation.operations),
     };
+  }
+
+  async createUserRequest(userRequest: z.infer<typeof userRequestSchema>) {
+    try {
+      const validatedUserRequest = userRequestSchema.parse(userRequest);
+      const response = await this.prisma.userRequest.create({
+        data: {
+          ...validatedUserRequest,
+          fields: JSON.stringify(validatedUserRequest.fields),
+        },
+      });
+      console.log("response", response);
+      return { error: false };
+    } catch (error) {
+      console.error("Error creating user request", error);
+      return { error: true, message: "Error creating user request" };
+    }
+  }
+
+  async getUserRequests() {
+    return this.prisma.userRequest.findMany({});
   }
 }
 
