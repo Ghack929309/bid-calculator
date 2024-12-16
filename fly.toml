@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for calculator-young-snowflake-728 on 2024-12-15T05:39:24-05:00
+# fly.toml app configuration file generated for calculator-winter-forest-3560 on 2024-12-15T06:19:42-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'calculator-young-snowflake-728'
+app = 'calculator-winter-forest-3560'
 primary_region = 'yyz'
 
 [build]
@@ -20,3 +20,9 @@ primary_region = 'yyz'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+
+
+[[mounts]]
+  source = 'data'
+  destination = '/data'
+

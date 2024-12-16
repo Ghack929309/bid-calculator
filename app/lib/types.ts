@@ -27,7 +27,7 @@ export type MilesVariable = {
   }[];
 };
 
-type MultiChoiceType = {
+export type MultiChoiceType = {
   type: "select" | "checkbox";
   options: {
     value: string;
@@ -41,6 +41,7 @@ export type InputFieldType = {
   name: string;
   required: boolean;
   enabled: boolean;
+  isPrivate: boolean;
 } & (
   | {
       type: "number" | "text";

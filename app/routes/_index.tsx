@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { toast } from "~/hooks/use-toast";
+import { toast } from "sonner";
 import { ActionFunctionArgs } from "@remix-run/node";
 import { contactSchema } from "~/lib/schema";
 import { Loader2 } from "lucide-react";
@@ -38,7 +38,6 @@ export default function Index() {
   const { sections } = useLoaderData<typeof loader>();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
-  // const { toast } = useToast();
   const [contactInfo, setContactInfo] = useState({ email: "", phone: "" });
   const [contactErrors, setContactErrors] = useState<Record<string, string>>(
     {}
@@ -120,10 +119,9 @@ export default function Index() {
         method: "post",
         encType: "application/json",
       });
-      toast({
-        title: "Success",
-        description: "Form submitted successfully",
-      });
+      setFormData({});
+      setContactInfo({ email: "", phone: "" });
+      toast.success("Form submitted successfully");
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -142,9 +140,7 @@ export default function Index() {
         });
         setErrors(newErrors);
 
-        toast({
-          variant: "destructive",
-          title: "Validation Error",
+        toast.error("Validation Error", {
           description: "Please check all required fields",
         });
       }
@@ -399,7 +395,11 @@ export default function Index() {
           </Card>
 
           <div className="flex items-center justify-end">
-            <Button type="submit" size="lg">
+            <Button
+              disabled={Object.keys(formData).length === 0}
+              type="submit"
+              size="lg"
+            >
               Submit
               {requestFetcher.state !== "idle" && (
                 <Loader2 className="w-4 h-4 ml-2 animate-spin" />

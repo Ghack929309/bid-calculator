@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Archive,
   GitBranchPlus,
@@ -207,6 +207,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         calculations: [],
       });
     }
+
     const fields = await db.getFieldBySectionId(sectionId);
     const logicFields = await db.getLogicFields(sectionId);
     const calculations = await db.getCalculations();
@@ -416,7 +417,13 @@ const CalculatorAdmin = () => {
       throw error;
     }
   };
-  console.log("calculations from admin", calculations);
+  useEffect(() => {
+    if (sectionId) {
+      searchParams.set("section", sectionId);
+      setSearchParams(searchParams);
+    }
+  }, []);
+  console.log("calculations", calculations);
   return (
     <div className="w-full p-6">
       <section>
@@ -449,7 +456,6 @@ const CalculatorAdmin = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <DynamicForm
             fields={fields as unknown as InputFieldType[]}
-            onSubmit={handleFormSubmit}
             isEditing={true}
             sectionId={activeTab}
             handleDeleteField={handleDeleteField}

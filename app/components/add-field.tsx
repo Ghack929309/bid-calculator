@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
-import { FieldType, InputFieldType } from "~/lib/types";
+import { FieldType, InputFieldType, MultiChoiceType } from "~/lib/types";
 import { getInitialFieldState } from "~/lib/utils";
 import { v4 as uuidv4 } from "uuid";
 
@@ -29,7 +29,7 @@ function FieldForm({
         onChange={(name) => onFieldChange({ ...field, name })}
       />
       <FieldTypeSelect
-        value={field.type}
+        value={field.type as FieldType}
         onChange={(type) =>
           onFieldChange(getInitialFieldState({ ...field, type }))
         }
@@ -44,6 +44,10 @@ function FieldForm({
         checked={field.required}
         onChange={(required) => onFieldChange({ ...field, required })}
       />
+      <PrivateCheckbox
+        checked={field.isPrivate}
+        onChange={(isPrivate) => onFieldChange({ ...field, isPrivate })}
+      />
     </div>
   );
 }
@@ -57,7 +61,10 @@ function FieldNameInput({
 }) {
   return (
     <div>
-      <label htmlFor="name" className="block text-sm font-medium mb-1">
+      <label
+        htmlFor="name"
+        className="block text-sm font-medium mb-1 dark:text-gray-200"
+      >
         Field Name
       </label>
       <input
@@ -65,7 +72,7 @@ function FieldNameInput({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full p-2 border rounded"
+        className="w-full p-2 border rounded bg-white dark:bg-gray-900 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         placeholder="Enter field name"
       />
     </div>
@@ -81,14 +88,17 @@ function FieldTypeSelect({
 }) {
   return (
     <div>
-      <label htmlFor="fieldType" className="block text-sm font-medium mb-1">
+      <label
+        htmlFor="fieldType"
+        className="block text-sm font-medium mb-1 dark:text-gray-200"
+      >
         Field Type
       </label>
       <select
         id="fieldType"
         value={value}
         onChange={(e) => onChange(e.target.value as FieldType)}
-        className="w-full p-2 border rounded"
+        className="w-full p-2 border rounded bg-white dark:bg-gray-900 dark:border-gray-600 dark:text-white"
       >
         <option value="number">Number</option>
         <option value="text">Text</option>
@@ -103,8 +113,8 @@ function OptionsManager({
   options,
   onChange,
 }: {
-  options: InputFieldType["options"];
-  onChange: (options: InputFieldType["options"]) => void;
+  options: MultiChoiceType["options"];
+  onChange: (options: MultiChoiceType["options"]) => void;
 }) {
   const [newOption, setNewOption] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -152,7 +162,7 @@ function OptionsManager({
           value={newOption}
           onChange={(e) => setNewOption(e.target.value)}
           placeholder="Enter an option"
-          className="flex-1 p-2 border rounded"
+          className="flex-1 p-2 border rounded bg-white dark:bg-gray-900 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
         <Button onClick={addOption}>Add</Button>
       </div>
@@ -168,7 +178,7 @@ function OptionItem({
   onRemove,
   onCancel,
 }: {
-  option: OptionsField["options"][number];
+  option: MultiChoiceType["options"][number];
   isEditing: boolean;
   onEdit: () => void;
   onUpdate: (value: string) => void;
@@ -178,45 +188,64 @@ function OptionItem({
   const [editValue, setEditValue] = useState(option);
 
   return (
-    <div className="flex items-center p-2 justify-between w-full border rounded gap-2">
-      {isEditing ? (
-        <div className="flex items-center gap-2 flex-1">
-          <input
-            type="text"
-            className="flex-1 p-1 border rounded"
-            autoFocus
-            value={editValue.value}
-            onChange={(e) =>
-              setEditValue({ ...editValue, value: e.target.value })
-            }
-            onKeyDown={(e) => e.key === "Enter" && onUpdate(editValue.value)}
+    <div className="flex items-center p-2 justify-between w-full border rounded gap-2 bg-white dark:bg-gray-900 dark:border-gray-600">
+      <span
+        contentEditable={isEditing}
+        onBlur={(e) => {
+          setEditValue({ ...editValue, value: e.target.innerText });
+          onUpdate(e.target.innerText);
+        }}
+        className={`${
+          isEditing
+            ? "flex-1 border-2 rounded border-blue-500 p-1 dark:border-blue-400"
+            : "border-none"
+        } dark:text-white`}
+      >
+        {option.value}
+      </span>
+      <div className="flex items-center gap-2">
+        {isEditing ? (
+          <Check
+            onClick={() => onUpdate(editValue.value)}
+            className="w-4 h-4 text-green-500 cursor-pointer"
           />
-          <div className="flex items-center gap-1">
-            <Check
-              onClick={() => onUpdate(editValue.value)}
-              className="w-4 h-4 text-green-500 cursor-pointer"
-            />
-            <X
-              onClick={onCancel}
-              className="w-4 h-4 text-red-500 cursor-pointer"
-            />
-          </div>
-        </div>
-      ) : (
-        <>
-          <span className="flex-1">{option.value}</span>
-          <div className="flex items-center gap-2">
-            <Pencil
-              onClick={onEdit}
-              className="w-4 h-4 text-blue-500 cursor-pointer"
-            />
-            <X
-              onClick={onRemove}
-              className="w-4 h-4 text-red-500 cursor-pointer"
-            />
-          </div>
-        </>
-      )}
+        ) : (
+          <Pencil
+            onClick={onEdit}
+            className="w-4 h-4 text-blue-500 cursor-pointer"
+          />
+        )}
+
+        <X
+          onClick={() => {
+            isEditing ? onCancel() : onRemove();
+          }}
+          className="w-4 h-4 text-red-500 cursor-pointer"
+        />
+      </div>
+    </div>
+  );
+}
+
+function PrivateCheckbox({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center space-x-2">
+      <input
+        id="private"
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="rounded border-gray-300 dark:border-gray-500 dark:bg-gray-900 dark:checked:bg-blue-600 dark:checked:border-blue-600"
+      />
+      <label htmlFor="private" className="text-sm dark:text-gray-200">
+        Private field
+      </label>
     </div>
   );
 }
@@ -235,9 +264,9 @@ function RequiredCheckbox({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="rounded border-gray-300"
+        className="rounded border-gray-300 dark:border-gray-500 dark:bg-gray-900 dark:checked:bg-blue-600 dark:checked:border-blue-600"
       />
-      <label htmlFor="required" className="text-sm">
+      <label htmlFor="required" className="text-sm dark:text-gray-200">
         Required field
       </label>
     </div>
@@ -264,7 +293,7 @@ export function AddField({
   const handleSave = () => {
     if (field.name.trim()) {
       handleAddField?.({ ...field, id: uuidv4(), sectionId });
-      setField(getInitialFieldState({ type: field.type }));
+      setField(getInitialFieldState({ type: field.type as FieldType }));
     }
   };
   const handleUpdate = () => {
@@ -285,10 +314,10 @@ export function AddField({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:text-white dark:border dark:border-gray-700">
         <DialogHeader>
           <DialogTitle>Add Field</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="dark:text-gray-300">
             Add a new field to the calculator.
           </DialogDescription>
         </DialogHeader>

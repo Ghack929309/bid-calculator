@@ -45,6 +45,7 @@ class DatabaseService {
 
   // Field Methods
   async createField(field: InputFieldType) {
+    console.log("field from db service", field);
     const { options, entries, ...fieldData } = field;
     return this.prisma.field.create({
       data: {
@@ -60,7 +61,7 @@ class DatabaseService {
       where: { isPublished: true },
       include: {
         fields: {
-          where: { enabled: true },
+          where: { enabled: true, isPrivate: false },
           orderBy: { createdAt: "asc" },
         },
       },
@@ -370,7 +371,9 @@ class DatabaseService {
   }
 
   async getUserRequests() {
-    return this.prisma.userRequest.findMany({});
+    return this.prisma.userRequest.findMany({
+      orderBy: { createdAt: "desc" },
+    });
   }
 }
 

@@ -10,16 +10,25 @@ import {
 } from "~/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import moment from "moment";
+import { FinalCalculator } from "~/components/final-calculator";
+import { useState } from "react";
+import { Button } from "~/components/ui/button";
+import { UserRequest } from "@prisma/client";
 
 export async function loader() {
   const requests = await db.getUserRequests();
   const sections = await db.getSections();
-  return { requests, sections };
+  const fields = await db.getFields();
+  return { requests, sections, fields };
 }
 
 export default function AdminRequest() {
-  const { requests, sections } = useLoaderData<typeof loader>();
-
+  const { requests, sections, fields } = useLoaderData<typeof loader>();
+  const [open, setOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<UserRequest | null>(
+    null
+  );
+  console.log("fields", fields);
   return (
     <div className="min-h-screen w-full bg-gray-50 p-8">
       <div className=" mx-auto space-y-8">
@@ -49,7 +58,6 @@ export default function AdminRequest() {
               </TableHeader>
               <TableBody>
                 {requests.map((request) => {
-                  const fields = JSON.parse(request.fields);
                   return (
                     <TableRow key={request.id}>
                       <TableCell>
@@ -61,22 +69,26 @@ export default function AdminRequest() {
                         {sections.find((s) => s.id === request.sectionId)?.name}
                       </TableCell>
                       <TableCell>
-                        <details className="cursor-pointer">
-                          <summary className="text-sm text-blue-600 hover:text-blue-800">
-                            Proceed to Calculator
-                          </summary>
-                          <div className="mt-2 text-sm">
-                            <pre className="bg-gray-50 p-2 rounded-md overflow-auto">
-                              {JSON.stringify(fields, null, 2)}
-                            </pre>
-                          </div>
-                        </details>
+                        <Button
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setOpen(true);
+                          }}
+                        >
+                          Proceed to Calculator
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
+            <FinalCalculator
+              open={open}
+              close={() => setOpen(false)}
+              userFields={selectedRequest}
+              allFields={fields}
+            />
           </CardContent>
         </Card>
       </div>

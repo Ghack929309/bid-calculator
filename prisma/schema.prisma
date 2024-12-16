@@ -2,7 +2,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// sqlitecloud://crixsey4hk.sqlite.cloud:8860/dev.db?apikey=K0J40rYawxnhMwspQaqRTIDS3RIARbCAbJYQbUNVad0
 
 datasource db {
   provider = "sqlite"
@@ -20,10 +19,11 @@ model Section {
 }
 
 model Field {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid()) 
   name        String
-  sectionId   String
+  sectionId   String   
   type        String // "number" | "text" | "select" | "checkbox"
+  isPrivate   Boolean  @default(false)
   required    Boolean  @default(false)
   isHidden    Boolean  @default(false)
   enabled     Boolean  @default(true)
@@ -37,9 +37,9 @@ model Field {
 }
 
 model LogicField {
-  id           String        @id @default(uuid())
+  id           String        @id @default(uuid()) 
   name         String
-  sectionId    String
+  sectionId    String        
   section      Section       @relation("SectionToLogicFields", fields: [sectionId], references: [id], onDelete: Cascade)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -48,8 +48,8 @@ model LogicField {
 }
 
 model Calculation {
-  id             String     @id @default(uuid())
-  logicId        String
+  id             String     @id @default(uuid()) 
+  logicId        String     
   type           String // "simple" | "conditional"
   comparator     String? // "equals" | "notEquals" | "greaterThan" | etc.
   comparedValues String? // JSON string for compared values
@@ -60,7 +60,7 @@ model Calculation {
 }
 
 model UserRequest {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) 
   email     String
   phone     String
   fields    String
